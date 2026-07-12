@@ -1,0 +1,9 @@
+{
+  "elements": [
+    { "elementName": "Username Input", "locatorType": "id", "locatorValue": "user-name" },
+    { "elementName": "Password Input", "locatorType": "id", "locatorValue": "password" },
+    { "elementName": "Login Button", "locatorType": "id", "locatorValue": "login-button" },
+    { "elementName": "Error Message", "locatorType": "css", "locatorValue": "h3[data-test='error']" },
+    { "elementName": "Products Title", "locatorType": "css", "locatorValue": ".title" }
+  ]
+}

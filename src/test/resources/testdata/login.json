@@ -1,0 +1,9 @@
+{
+  "testData": [
+    { "key": "Standard User", "value": "standard_user" },
+    { "key": "Locked Out User", "value": "locked_out_user" },
+    { "key": "Invalid User", "value": "invalid_user" },
+    { "key": "Password", "value": "secret_sauce" },
+    { "key": "Wrong Password", "value": "wrong_password" }
+  ]
+}

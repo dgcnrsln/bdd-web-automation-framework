@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Run tests (headless)
+        continue-on-error: true
+        run: >
+          mvn clean test
+          -Dheadless=true
+          -DsuiteXmlFile=src/test/resources/testng-single.xml
+
+      - name: Check for failed scenarios
+        id: check_rerun
+        if: always()
+        run: |
+          if [ -s target/rerun.txt ]; then
+            echo "has_failures=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_failures=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rerun failed scenarios
+        if: steps.check_rerun.outputs.has_failures == 'true'
+        run: >
+          mvn test
+          -Dheadless=true
+          -DsuiteXmlFile=src/test/resources/testng-rerun.xml
+
+      - name: Generate Allure report
+        if: always()
+        run: mvn allure:report
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results
+
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin
+
+      - name: Upload rerun.txt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rerun-txt
+          path: target/rerun.txt
+          if-no-files-found: ignore

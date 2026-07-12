@@ -1,0 +1,11 @@
+{
+  "elements": [
+    { "elementName": "Add To Cart", "locatorType": "id", "locatorValue": "add-to-cart-sauce-labs-backpack" },
+    { "elementName": "Cart Badge", "locatorType": "css", "locatorValue": ".shopping_cart_badge" },
+    { "elementName": "Inventory Remove Button", "locatorType": "id", "locatorValue": "remove-sauce-labs-backpack" },
+    { "elementName": "Menu Button", "locatorType": "id", "locatorValue": "react-burger-menu-btn" },
+    { "elementName": "Logout Link", "locatorType": "id", "locatorValue": "logout_sidebar_link" },
+    { "elementName": "Inventory Item Image", "locatorType": "css", "locatorValue": ".inventory_item_img img" },
+    { "elementName": "Sauce Labs Backpack", "locatorType": "xpath", "locatorValue": "//*[text()='Sauce Labs Backpack']" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "elements": [
+    { "elementName": "Product Detail Name", "locatorType": "css", "locatorValue": ".inventory_details_name" },
+    { "elementName": "Product Detail Price", "locatorType": "css", "locatorValue": ".inventory_details_price" },
+    { "elementName": "Product Detail Description", "locatorType": "css", "locatorValue": ".inventory_details_desc" },
+    { "elementName": "Product Detail Image", "locatorType": "css", "locatorValue": ".inventory_details_img" },
+    { "elementName": "Product Detail Add To Cart", "locatorType": "id", "locatorValue": "add-to-cart" },
+    { "elementName": "Product Detail Remove From Cart", "locatorType": "id", "locatorValue": "remove" },
+    { "elementName": "Back To Products", "locatorType": "css", "locatorValue": "[data-test='back-to-products']" },
+    { "elementName": "Cart Badge", "locatorType": "css", "locatorValue": ".shopping_cart_badge" }
+  ]
+}

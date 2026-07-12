@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="Single Run">
+
+    <parameter name="browser" value="chrome"/>
+
+    <test name="Cucumber">
+        <classes>
+            <class name="com.dgcnrsln.automation.runners.TestRunner"/>
+        </classes>
+    </test>
+
+</suite>

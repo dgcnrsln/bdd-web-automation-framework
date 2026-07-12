@@ -1,0 +1,6 @@
+{
+  "testData": [
+    { "key": "Sauce Demo", "value": "https://www.saucedemo.com/" },
+    { "key": "Sauce Demo - Inventory URL", "value": "https://www.saucedemo.com/inventory.html" }
+  ]
+}
