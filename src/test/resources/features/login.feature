@@ -46,6 +46,7 @@ Feature: Login Page Tests
     When I navigate to "Sauce Demo - Inventory URL"
     Then the "Error Message" should contain "Epic sadface: You can only access '/inventory.html' when you are logged in"
 
+  @excluded-from-ci
   Scenario: LG-09 Invalid credentials should not show products title (Fail Scenario)
     When I enter the data "Invalid User" into the "Username Input"
     When I enter the data "Wrong Password" into the "Password Input"

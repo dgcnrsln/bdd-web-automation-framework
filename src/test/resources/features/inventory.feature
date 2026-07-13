@@ -29,5 +29,5 @@ Feature: Inventory Page Tests
     When I click the "Sauce Labs Backpack"
     Then the "Product Detail Name" should contain "Sauce Labs Backpack"
 
-  Scenario: INV-6 Product image is visible on inventory page
+  Scenario: INV-06 Product image is visible on inventory page
     Then the "Inventory Item Image" should be visible

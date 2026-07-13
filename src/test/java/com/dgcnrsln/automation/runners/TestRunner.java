@@ -11,7 +11,7 @@ import org.testng.annotations.DataProvider;
                 "com.dgcnrsln.automation.stepdefinitions",
                 "com.dgcnrsln.automation.hooks"
         },
-        tags = "@run",
+        tags = "@run and not @excluded-from-ci",
         plugin = {
                 "summary",
                 "io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm",
