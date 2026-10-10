@@ -41,7 +41,7 @@ Referans uygulama olarak [Sauce Demo](https://www.saucedemo.com/) — herkese a�
 - **Paralel Çalıştırma Desteği:** TestNG suite tanımları ile tekli, paralel (method bazlı, 3 thread) ve rerun (yalnızca başarısız senaryolar) çalıştırma modları hazır durumdadır.
 - **Generic ve Yeniden Kullanılabilir Step Definitions:** 21 adet generic Gherkin adımı ile çoğu senaryo yeni Java kodu yazılmadan kurgulanabilir.
 - **Bağlamsal Hata Mesajları:** Element etkileşimleri başarısız olduğunda, hangi locator üzerinde başarısız olduğunu belirten anlamlı exception mesajları fırlatılır.
-- **Başarısız Adımlarda Otomatik Screenshot:** Bir adım başarısız olduğunda ekran görüntüsü otomatik alınır ve doğrudan Allure raporuna gömülür.
+- **Başarısız Adımlarda Otomatik Screenshot:** Bir adım başarısız olduğunda ekran görüntüsü otomatik alınır ve Allure raporunda doğrudan o başarısız adımın içine gömülür.
 - **Allure Raporlama:** Cucumber senaryoları, adımları, ekran görüntüleri ve retry geçmişi Allure üzerinden görselleştirilir.
 - **Otomatik ve Manuel Rerun:** Başarısız senaryolar `rerun.txt`'e yazılır; hem aynı CI koşumu içinde otomatik hem de GitHub Actions üzerinden manuel olarak yalnızca başarısız senaryolar yeniden çalıştırılabilir.
 - **SLF4J + Logback Loglama:** Her log satırına thread adı ve timestamp eklenir; paralel koşumda hangi logun hangi senaryoya ait olduğu netleşir.
@@ -134,6 +134,7 @@ BDDWebAutomationFramework/
 │   │   │   │   └── LocatorRepository.java
 │   │   │   └── utils/
 │   │   │       ├── ConfigReader.java
+│   │   │       ├── FailureScreenshot.java
 │   │   │       ├── JsonDataReader.java
 │   │   │       └── ResourcePaths.java
 │   │   └── resources/
@@ -368,7 +369,7 @@ Scenario: LG-09 Invalid credentials should not show products title (Fail Scenari
     Then the "Products Title" should be visible
 ```
 
-Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `AssertionError` fırlar ve `Hooks.attachScreenshotOnFailure` otomatik devreye girip ekran görüntüsünü Allure raporuna gömer.
+Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `AssertionError` fırlar; hata fırlatılmadan hemen önce `FailureScreenshot` ekran görüntüsünü alıp Allure raporunda başarısız adımın içine ekler.
 
 > **Not:** Bu senaryo, framework'ün hata yakalama/raporlama/otomatik screenshot mekanizmasını göstermek amacıyla **bilerek** her zaman başarısız olacak şekilde kurgulanmıştır — bir bug değildir. Bu yüzden `@excluded-from-ci` etiketiyle işaretlenmiştir ve `TestRunner`'ın `tags = "@run and not @excluded-from-ci"` filtresi sayesinde CI koşumlarına dahil edilmez; CI her zaman yeşil kalır. Senaryoyu bilerek çalıştırmak istersen (örn. rapor mekanizmasını göstermek için) `.feature` dosyasından `@excluded-from-ci` etiketini geçici olarak kaldırman yeterli.
 
@@ -446,19 +447,30 @@ Orijinal Selenium exception'ı `cause` olarak korunur; stack trace'de teknik det
 
 ### Otomatik Screenshot (Başarısız Adımlarda)
 
-`Hooks` sınıfındaki `@AfterStep` hook'u, her adımdan sonra çalışır ve yalnızca `scenario.isFailed()` `true` ise ekran görüntüsü alıp doğrudan Allure raporuna gömer. Driver yoksa ya da ekran görüntüsü alınamazsa yalnızca uyarı loglanır; asıl test hatası gölgelenmez (aşağıdaki örnek sadeleştirilmiştir):
+Ekran görüntüsü, hatanın fırlatıldığı anda alınır ve Allure raporunda **başarısız adımın içinde** "Failure Screenshot" adıyla görünür. Bunu `utils/FailureScreenshot` yardımcı sınıfı yapar:
+
+- **Ne zaman çağrılır:** Action sınıfları (`ElementActions`, `VerificationActions`, `WaitActions`, `NavigationActions`, `AlertActions`, `BrowserActions`) hata fırlatmadan hemen önce `FailureScreenshot.attach()` çağırır. Ek, `Allure.addAttachment` ile o an çalışan Cucumber adımına bağlanır.
+- **Senaryo başına bir ek:** Aynı senaryoda ikinci çağrı hiçbir şey yapmaz.
+- **Asıl hatayı gölgelemez:** Driver yoksa ya da ekran görüntüsü alınamazsa (açık alert, kopmuş oturum) yalnızca uyarı loglanır.
+- **Yedek:** Hata action sınıflarından geçmediyse (örn. step definition içindeki bir hata), `Hooks` sınıfındaki `@After` senaryo başarısızsa ve henüz ek yoksa bir tane ekler. `@AfterStep` hook'u kullanılmaz; bu yüzden raporda her adımdan sonra ayrı bir hook satırı oluşmaz.
 
 ```java
-@AfterStep
-public void attachScreenshotOnFailure(Scenario scenario) {
-    if (scenario.isFailed() && DriverManager.hasDriver()) {
-        try {
-            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                    .getScreenshotAs(OutputType.BYTES);
-            scenario.attach(screenshot, "image/png", "Failure Screenshot");
-        } catch (RuntimeException e) {
-            LOGGER.warn("Failure screenshot could not be taken: {}", e.getMessage());
+// VerificationActions içinde (sadeleştirilmiş)
+} catch (TimeoutException e) {
+    FailureScreenshot.attach();
+    throw new AssertionError("Element is not visible. Locator: " + locator, e);
+}
+
+// Hooks içinde
+@After
+public void teardown(Scenario scenario) {
+    try {
+        if (scenario.isFailed() && !FailureScreenshot.isAttached()) {
+            FailureScreenshot.attach();
         }
+    } finally {
+        FailureScreenshot.reset();
+        DriverManager.quitDriver();
     }
 }
 ```
