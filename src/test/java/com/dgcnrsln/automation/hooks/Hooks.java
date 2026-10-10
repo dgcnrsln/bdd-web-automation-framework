@@ -37,11 +37,16 @@ public class Hooks {
                 return;
             }
 
-            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                    .getScreenshotAs(OutputType.BYTES);
+            try {
+                byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
+                        .getScreenshotAs(OutputType.BYTES);
 
-            scenario.attach(screenshot, "image/png", "Failure Screenshot");
-            LOGGER.info("Screenshot attached for scenario: {}", scenario.getName());
+                scenario.attach(screenshot, "image/png", "Failure Screenshot");
+                LOGGER.info("Screenshot attached for scenario: {}", scenario.getName());
+            } catch (RuntimeException e) {
+                LOGGER.warn("Failure screenshot could not be taken for scenario: {} - {}",
+                        scenario.getName(), e.getMessage());
+            }
         }
     }
 
