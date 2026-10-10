@@ -1,6 +1,10 @@
 # Değerlendirme Raporu: BDD Web Automation Framework
 
-Hiçbir dosyayı değiştirmedim. İzlenen 47 dosyanın tamamını okudum; testleri çalıştırmadım (çalıştırmak `target/` üretirdi), bu yüzden bulgular statik incelemeye dayanıyor. Belirsiz kalan noktalar sonradan Maven komutlarıyla kontrol edildi; sonuçlar sondaki bölümde.
+Bu rapor 2026-10-10 tarihinde, `c1c5671` commit'indeki kod üzerinde yapılan incelemeyi ve ardından uygulanan düzeltmeleri içerir.
+
+- **İnceleme (bölüm 1-10):** İzlenen 47 dosyanın tamamı okundu; bulgular statik incelemeye dayanıyor ve o aşamada hiçbir dosya değiştirilmedi. Bu bölümlerdeki dosya ve satır numaraları inceleme anındaki koda göredir.
+- **Doğrulama (bölüm 11):** Belirsiz kalan noktalar sonradan Maven komutlarıyla ve testler çalıştırılarak kontrol edildi.
+- **Düzeltmeler (bölüm 12-13):** Bulguların bir kısmı `docs/inceleme-raporu` dalında ayrı commit'lerle düzeltildi. Düzeltilen maddeler yerinde commit koduyla işaretli; işaretsiz maddeler hâlâ açık. Son durumda `mvn clean test -Dheadless=true` 19 senaryonun 19'unu geçiriyor. Hiçbir şey push edilmedi.
 
 ## 1. Özet
 
@@ -253,4 +257,12 @@ Açık kalan doğrulama maddesi yok.
 - Madde 6: Hata mesajı değerleri içermez (test verisi gizli olabilir), yalnızca isim ve iki dosya adını verir.
 - Madde 9: Workflow'lar GitHub Actions üzerinde koşmadı (push yapılmadı). `test` job'ının `contents: read` ile artifact yükleme ve cache adımlarını çalıştırması beklenir, ancak denenmedi.
 
-İsterseniz ilk iki kritik maddeyle başlayıp düzeltmeleri uygulayabilirim.
+## 14. Güncel durum ve açık kalanlar
+
+İki kritik madde ve öncelik tablosundaki orta öncelikli maddelerin 3-7 numaralıları düzeltildi. Öncelik tablosunda açık kalan üç madde var:
+
+- **Madde 8:** 21 adımın çoğu hâlâ hiçbir senaryoda kullanılmıyor. "should not be visible" artık INV-02 ve PD-04'te kullanılıyor; kullanılmayan adım sayısı 15'ten 14'e indi.
+- **Madde 9:** `src/main` kodu `src/test/resources` yoluna sabitlenmiş.
+- **Madde 10:** Ortam değiştirme mekanizması yok.
+
+Bunların dışında bölüm 4-10'da işaretsiz duran orta ve düşük öncelikli maddeler de açık. Öne çıkanlar: yalnızca testte kullanılan bağımlılıkların `test` scope'una alınması, bağımlılık güncellemeleri, çatı kodu için birim testleri ve workflow'ların ilk push'ta GitHub Actions üzerinde doğrulanması.
