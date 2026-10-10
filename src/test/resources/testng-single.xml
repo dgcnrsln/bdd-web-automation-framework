@@ -4,8 +4,6 @@
 <suite name="Single Run"
        data-provider-thread-count="1">
 
-    <parameter name="browser" value="chrome"/>
-
     <test name="Cucumber">
         <classes>
             <class name="com.dgcnrsln.automation.runners.TestRunner"/>

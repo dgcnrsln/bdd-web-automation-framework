@@ -6,8 +6,6 @@
        thread-count="3"
        data-provider-thread-count="3">
 
-    <parameter name="browser" value="chrome"/>
-
     <test name="Cucumber">
         <classes>
             <class name="com.dgcnrsln.automation.runners.TestRunner"/>

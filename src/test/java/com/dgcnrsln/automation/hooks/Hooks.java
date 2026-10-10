@@ -13,7 +13,6 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Reporter;
 
 public class Hooks {
     private static final Logger LOGGER = LoggerFactory.getLogger(Hooks.class);
@@ -58,20 +57,6 @@ public class Hooks {
     }
 
     private String resolveBrowser() {
-        String systemProperty = System.getProperty("browser");
-        if (systemProperty != null && !systemProperty.isBlank()) {
-            return systemProperty;
-        }
-
-        String xmlParameter = Reporter.getCurrentTestResult()
-                .getTestContext()
-                .getCurrentXmlTest()
-                .getParameter("browser");
-
-        if (xmlParameter != null && !xmlParameter.isBlank()) {
-            return xmlParameter;
-        }
-
         return ConfigReader.get("browser", "chrome");
     }
 }

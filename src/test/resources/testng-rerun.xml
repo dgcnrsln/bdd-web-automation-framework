@@ -4,8 +4,6 @@
 <suite name="Rerun Failed"
        data-provider-thread-count="1">
 
-    <parameter name="browser" value="chrome"/>
-
     <test name="Cucumber Rerun">
         <classes>
             <class name="com.dgcnrsln.automation.runners.RerunRunner"/>
