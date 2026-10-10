@@ -32,6 +32,7 @@ public class DriverFactory {
 
     /**
      * Verilen tarayıcı için yapılandırılmış yeni bir WebDriver oluşturur.
+     * Tarayıcı açıldıktan sonraki ayarlar hata verirse tarayıcı kapatılır ve hata yeniden fırlatılır.
      *
      * @param browser başlatılacak tarayıcı türü
      * @return kullanıma hazır WebDriver
@@ -48,15 +49,29 @@ public class DriverFactory {
             case EDGE -> new EdgeDriver(buildEdgeOptions(headless));
         };
 
-        int pageLoadTimeout = ConfigReader.getInt("page.load.timeout", 30);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(pageLoadTimeout));
-        LOGGER.info("Page load timeout: {}s", pageLoadTimeout);
+        try {
+            int pageLoadTimeout = ConfigReader.getInt("page.load.timeout", 30);
+            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(pageLoadTimeout));
+            LOGGER.info("Page load timeout: {}s", pageLoadTimeout);
 
-        if (!headless) {
-            driver.manage().window().maximize();
+            if (!headless) {
+                driver.manage().window().maximize();
+            }
+        } catch (RuntimeException e) {
+            LOGGER.warn("Driver configuration failed, closing the browser: {}", e.getMessage());
+            quitQuietly(driver, e);
+            throw e;
         }
 
         return driver;
+    }
+
+    private static void quitQuietly(WebDriver driver, RuntimeException original) {
+        try {
+            driver.quit();
+        } catch (RuntimeException quitError) {
+            original.addSuppressed(quitError);
+        }
     }
 
     private static boolean isHeadless() {
