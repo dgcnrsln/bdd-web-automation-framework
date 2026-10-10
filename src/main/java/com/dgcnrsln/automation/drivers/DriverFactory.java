@@ -17,6 +17,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
+/**
+ * Tarayıcı türüne ve yapılandırmaya (headless, sayfa yükleme zaman aşımı) göre WebDriver üretir.
+ */
 public class DriverFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(DriverFactory.class);
 
@@ -27,6 +30,12 @@ public class DriverFactory {
         SELENIUM_DEVTOOLS_LOGGER.setLevel(Level.SEVERE);
     }
 
+    /**
+     * Verilen tarayıcı için yapılandırılmış yeni bir WebDriver oluşturur.
+     *
+     * @param browser başlatılacak tarayıcı türü
+     * @return kullanıma hazır WebDriver
+     */
     public static WebDriver createDriver(BrowserType browser) {
         LOGGER.info("Creating WebDriver instance for browser: {}", browser.name().toLowerCase(Locale.ROOT));
 

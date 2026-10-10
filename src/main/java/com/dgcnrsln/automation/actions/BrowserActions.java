@@ -11,7 +11,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Belirli bir elemente bağlı olmayan, tarayıcı düzeyindeki işlemler.
+ */
 public class BrowserActions {
+    /**
+     * Ekran görüntüsü alır ve {@code Reports/Screenshots} klasörüne PNG olarak kaydeder.
+     *
+     * @throws RuntimeException dosya kaydedilemezse
+     */
     public void takeScreenshot() {
         File source = ((TakesScreenshot) DriverManager.getDriver())
                 .getScreenshotAs(OutputType.FILE);
@@ -30,6 +38,9 @@ public class BrowserActions {
         }
     }
 
+    /**
+     * O an odakta olan elemente Enter tuşunu gönderir.
+     */
     public void pressEnter() {
         DriverManager.getDriver()
                 .switchTo()

@@ -10,6 +10,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Bir klasördeki JSON dosyalarından locator ve anahtar-değer verilerini okur.
+ * Her klasör yalnızca bir kez okunur; sonuçlar thread-safe bir cache'te tutulur.
+ */
 public class JsonDataReader {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -19,6 +23,12 @@ public class JsonDataReader {
     private final Map<String, By> locatorMap;
     private final Map<String, String> testDataMap;
 
+    /**
+     * Verilen klasördeki tüm JSON dosyalarını yükler (daha önce yüklendiyse cache'ten alır).
+     *
+     * @param jsonFolderPath JSON dosyalarının bulunduğu klasörün yolu
+     * @throws RuntimeException klasör bulunamazsa veya bir dosya okunamazsa
+     */
     public JsonDataReader(String jsonFolderPath) {
         this.locatorMap = LOCATOR_CACHE.computeIfAbsent(jsonFolderPath, path -> loadLocators(path));
         this.testDataMap = DATA_CACHE.computeIfAbsent(jsonFolderPath, path -> loadTestData(path));
@@ -98,6 +108,13 @@ public class JsonDataReader {
         };
     }
 
+    /**
+     * Element adına karşılık gelen locator'ı döndürür.
+     *
+     * @param elementName elementin JSON'daki adı
+     * @return elemente ait Selenium locator'ı
+     * @throws RuntimeException element adı bulunamazsa
+     */
     public By getLocator(String elementName) {
         if (!locatorMap.containsKey(elementName)) {
             throw new RuntimeException("Locator not found: " + elementName);
@@ -106,6 +123,13 @@ public class JsonDataReader {
         return locatorMap.get(elementName);
     }
 
+    /**
+     * Anahtara karşılık gelen veriyi döndürür.
+     *
+     * @param elementName verinin JSON'daki anahtarı
+     * @return anahtara ait değer
+     * @throws RuntimeException anahtar bulunamazsa
+     */
     public String getTestData(String elementName) {
         if (!testDataMap.containsKey(elementName)) {
             throw new RuntimeException("Test data not found: " + elementName);
