@@ -22,13 +22,16 @@ public class VerificationActions {
      * Elementin zaman aşımı süresi içinde görünür olduğunu doğrular.
      *
      * @param locator doğrulanacak elementin locator'ı
-     * @throws AssertionError element görünür olmazsa
+     * @throws AssertionError   element süre içinde görünür olmazsa
+     * @throws RuntimeException doğrulama başka bir WebDriver hatası yüzünden yapılamazsa
      */
     public void verifyElementVisible(By locator) {
         try {
             waitActions.visible(locator);
-        } catch (WebDriverException e) {
+        } catch (TimeoutException e) {
             throw new AssertionError("Element is not visible. Locator: " + locator, e);
+        } catch (WebDriverException e) {
+            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
         }
     }
 
@@ -36,7 +39,8 @@ public class VerificationActions {
      * Elementin zaman aşımı süresi içinde görünmez olduğunu (veya sayfada bulunmadığını) doğrular.
      *
      * @param locator doğrulanacak elementin locator'ı
-     * @throws AssertionError element süre sonunda hâlâ görünürse
+     * @throws AssertionError   element süre sonunda hâlâ görünürse
+     * @throws RuntimeException doğrulama başka bir WebDriver hatası yüzünden yapılamazsa
      */
     public void verifyElementInvisible(By locator) {
         boolean invisible;
@@ -45,6 +49,8 @@ public class VerificationActions {
             invisible = waitActions.invisible(locator);
         } catch (TimeoutException e) {
             throw new AssertionError("Element is still visible. Locator: " + locator, e);
+        } catch (WebDriverException e) {
+            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
         }
 
         Assert.assertTrue(invisible, "Element is still visible. Locator: " + locator);
@@ -55,15 +61,18 @@ public class VerificationActions {
      *
      * @param locator      doğrulanacak elementin locator'ı
      * @param expectedText metnin içermesi beklenen değer
-     * @throws AssertionError element görünür olmazsa veya metin beklenen değeri içermiyorsa
+     * @throws AssertionError   element süre içinde görünür olmazsa veya metin beklenen değeri içermiyorsa
+     * @throws RuntimeException doğrulama başka bir WebDriver hatası yüzünden yapılamazsa
      */
     public void verifyTextContains(By locator, String expectedText) {
         String actualText;
 
         try {
             actualText = waitActions.visible(locator).getText();
-        } catch (WebDriverException e) {
+        } catch (TimeoutException e) {
             throw new AssertionError("Element is not visible. Locator: " + locator, e);
+        } catch (WebDriverException e) {
+            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
         }
 
         Assert.assertTrue(actualText.contains(expectedText),
@@ -80,15 +89,18 @@ public class VerificationActions {
      *
      * @param locator       doğrulanacak elementin locator'ı
      * @param expectedValue özelliğin eşit olması beklenen değer
-     * @throws AssertionError element görünür olmazsa, {@code value} özelliği yoksa veya değer eşit değilse
+     * @throws AssertionError   element süre içinde görünür olmazsa, {@code value} özelliği yoksa veya değer eşit değilse
+     * @throws RuntimeException doğrulama başka bir WebDriver hatası yüzünden yapılamazsa
      */
     public void verifyValueEquals(By locator, String expectedValue) {
         String actualValue;
 
         try {
             actualValue = waitActions.visible(locator).getDomProperty("value");
-        } catch (WebDriverException e) {
+        } catch (TimeoutException e) {
             throw new AssertionError("Element is not visible. Locator: " + locator, e);
+        } catch (WebDriverException e) {
+            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
         }
 
         if (actualValue == null) {
