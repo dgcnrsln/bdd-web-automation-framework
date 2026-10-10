@@ -1,6 +1,7 @@
 package com.dgcnrsln.automation.actions;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriverException;
 import org.testng.Assert;
 
@@ -21,13 +22,13 @@ public class VerificationActions {
      * Elementin zaman aşımı süresi içinde görünür olduğunu doğrular.
      *
      * @param locator doğrulanacak elementin locator'ı
-     * @throws RuntimeException element görünür olmazsa
+     * @throws AssertionError element görünür olmazsa
      */
     public void verifyElementVisible(By locator) {
         try {
             waitActions.visible(locator);
         } catch (WebDriverException e) {
-            throw new RuntimeException("Element is not visible. Locator: " + locator, e);
+            throw new AssertionError("Element is not visible. Locator: " + locator, e);
         }
     }
 
@@ -35,9 +36,16 @@ public class VerificationActions {
      * Elementin zaman aşımı süresi içinde görünmez olduğunu (veya sayfada bulunmadığını) doğrular.
      *
      * @param locator doğrulanacak elementin locator'ı
+     * @throws AssertionError element süre sonunda hâlâ görünürse
      */
     public void verifyElementInvisible(By locator) {
-        boolean invisible = waitActions.invisible(locator);
+        boolean invisible;
+
+        try {
+            invisible = waitActions.invisible(locator);
+        } catch (TimeoutException e) {
+            throw new AssertionError("Element is still visible. Locator: " + locator, e);
+        }
 
         Assert.assertTrue(invisible, "Element is still visible. Locator: " + locator);
     }
@@ -47,7 +55,7 @@ public class VerificationActions {
      *
      * @param locator      doğrulanacak elementin locator'ı
      * @param expectedText metnin içermesi beklenen değer
-     * @throws RuntimeException element görünür olmazsa
+     * @throws AssertionError element görünür olmazsa veya metin beklenen değeri içermiyorsa
      */
     public void verifyTextContains(By locator, String expectedText) {
         String actualText;
@@ -55,7 +63,7 @@ public class VerificationActions {
         try {
             actualText = waitActions.visible(locator).getText();
         } catch (WebDriverException e) {
-            throw new RuntimeException("Element is not visible. Locator: " + locator, e);
+            throw new AssertionError("Element is not visible. Locator: " + locator, e);
         }
 
         Assert.assertTrue(actualText.contains(expectedText),
@@ -72,8 +80,7 @@ public class VerificationActions {
      *
      * @param locator       doğrulanacak elementin locator'ı
      * @param expectedValue özelliğin eşit olması beklenen değer
-     * @throws RuntimeException element görünür olmazsa
-     * @throws AssertionError   elementin {@code value} özelliği yoksa veya değer eşit değilse
+     * @throws AssertionError element görünür olmazsa, {@code value} özelliği yoksa veya değer eşit değilse
      */
     public void verifyValueEquals(By locator, String expectedValue) {
         String actualValue;
@@ -81,7 +88,7 @@ public class VerificationActions {
         try {
             actualValue = waitActions.visible(locator).getDomProperty("value");
         } catch (WebDriverException e) {
-            throw new RuntimeException("Element is not visible. Locator: " + locator, e);
+            throw new AssertionError("Element is not visible. Locator: " + locator, e);
         }
 
         if (actualValue == null) {
