@@ -28,7 +28,8 @@ public class JsonDataReader {
      * Verilen klasördeki tüm JSON dosyalarını yükler (daha önce yüklendiyse cache'ten alır).
      *
      * @param jsonFolderPath JSON dosyalarının bulunduğu klasörün yolu
-     * @throws RuntimeException klasör bulunamazsa veya bir dosya okunamazsa
+     * @throws RuntimeException      klasör bulunamazsa veya bir dosya okunamazsa
+     * @throws IllegalStateException aynı isim farklı dosyalarda farklı değerle tanımlanmışsa
      */
     public JsonDataReader(String jsonFolderPath) {
         this.locatorMap = LOCATOR_CACHE.computeIfAbsent(jsonFolderPath, path -> loadLocators(path));
@@ -37,6 +38,7 @@ public class JsonDataReader {
 
     private Map<String, By> loadLocators(String jsonFolderPath) {
         Map<String, By> locators = new HashMap<>();
+        Map<String, String> sourceFiles = new HashMap<>();
 
         for (File file : listJsonFiles(jsonFolderPath)) {
             JsonNode rootNode = readTree(file);
@@ -47,7 +49,7 @@ public class JsonDataReader {
                     String type = element.get("locatorType").asText();
                     String value = element.get("locatorValue").asText();
 
-                    locators.put(name, convertToBy(type, value));
+                    putUnique(locators, sourceFiles, "locator", name, convertToBy(type, value), file);
                 });
             }
         }
@@ -57,6 +59,7 @@ public class JsonDataReader {
 
     private Map<String, String> loadTestData(String jsonFolderPath) {
         Map<String, String> testData = new HashMap<>();
+        Map<String, String> sourceFiles = new HashMap<>();
 
         for (File file : listJsonFiles(jsonFolderPath)) {
             JsonNode rootNode = readTree(file);
@@ -66,12 +69,34 @@ public class JsonDataReader {
                     String name = data.get("key").asText();
                     String value = data.get("value").asText();
 
-                    testData.put(name, value);
+                    putUnique(testData, sourceFiles, "test data", name, value, file);
                 });
             }
         }
 
         return testData;
+    }
+
+    private <T> void putUnique(Map<String, T> target,
+                               Map<String, String> sourceFiles,
+                               String kind,
+                               String name,
+                               T value,
+                               File file) {
+        T existing = target.get(name);
+
+        if (existing != null && !existing.equals(value)) {
+            throw new IllegalStateException(String.format(
+                    "Duplicate %s '%s' is defined with different values in '%s' and '%s'.",
+                    kind,
+                    name,
+                    sourceFiles.get(name),
+                    file.getName()
+            ));
+        }
+
+        target.put(name, value);
+        sourceFiles.putIfAbsent(name, file.getName());
     }
 
     private File[] listJsonFiles(String jsonFolderPath) {
