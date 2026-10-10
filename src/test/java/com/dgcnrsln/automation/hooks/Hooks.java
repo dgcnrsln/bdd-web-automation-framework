@@ -1,5 +1,6 @@
 package com.dgcnrsln.automation.hooks;
 
+import com.dgcnrsln.automation.drivers.BrowserType;
 import com.dgcnrsln.automation.drivers.DriverFactory;
 import com.dgcnrsln.automation.drivers.DriverManager;
 import com.dgcnrsln.automation.utils.ConfigReader;
@@ -20,7 +21,7 @@ public class Hooks {
     @Before
     public void setup(Scenario scenario) {
         LOGGER.info("Starting scenario: {}", scenario.getName());
-        String browser = resolveBrowser();
+        BrowserType browser = BrowserType.fromString(resolveBrowser());
         WebDriver driver = DriverFactory.createDriver(browser);
         DriverManager.setDriver(driver);
         LOGGER.info("Driver created for scenario: {}", scenario.getName());

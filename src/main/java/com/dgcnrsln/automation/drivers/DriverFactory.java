@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -25,17 +26,16 @@ public class DriverFactory {
         SELENIUM_DEVTOOLS_LOGGER.setLevel(Level.SEVERE);
     }
 
-    public static WebDriver createDriver(String browser) {
-        LOGGER.info("Creating WebDriver instance for browser: {}", browser);
+    public static WebDriver createDriver(BrowserType browser) {
+        LOGGER.info("Creating WebDriver instance for browser: {}", browser.name().toLowerCase(Locale.ROOT));
 
         boolean headless = isHeadless();
         LOGGER.info("Headless mode: {}", headless);
 
-        WebDriver driver = switch (browser.toLowerCase()) {
-            case "chrome" -> new ChromeDriver(buildChromeOptions(headless));
-            case "firefox" -> new FirefoxDriver(buildFirefoxOptions(headless));
-            case "edge" -> new EdgeDriver(buildEdgeOptions(headless));
-            default -> throw new IllegalArgumentException("Unsupported browser: " + browser);
+        WebDriver driver = switch (browser) {
+            case CHROME -> new ChromeDriver(buildChromeOptions(headless));
+            case FIREFOX -> new FirefoxDriver(buildFirefoxOptions(headless));
+            case EDGE -> new EdgeDriver(buildEdgeOptions(headless));
         };
 
         if (!headless) {
