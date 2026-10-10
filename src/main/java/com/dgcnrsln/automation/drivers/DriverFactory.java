@@ -11,6 +11,7 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -37,6 +38,10 @@ public class DriverFactory {
             case FIREFOX -> new FirefoxDriver(buildFirefoxOptions(headless));
             case EDGE -> new EdgeDriver(buildEdgeOptions(headless));
         };
+
+        int pageLoadTimeout = ConfigReader.getInt("page.load.timeout", 30);
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(pageLoadTimeout));
+        LOGGER.info("Page load timeout: {}s", pageLoadTimeout);
 
         if (!headless) {
             driver.manage().window().maximize();
