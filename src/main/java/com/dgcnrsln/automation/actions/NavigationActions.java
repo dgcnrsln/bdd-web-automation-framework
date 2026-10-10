@@ -1,6 +1,8 @@
 package com.dgcnrsln.automation.actions;
 
 import com.dgcnrsln.automation.drivers.DriverManager;
+import com.dgcnrsln.automation.utils.FailureScreenshot;
+import org.openqa.selenium.WebDriverException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,12 @@ public class NavigationActions {
     public void goTo(String url) {
         LOGGER.debug("Navigating to: {}", url);
 
-        DriverManager.getDriver().get(url);
+        try {
+            DriverManager.getDriver().get(url);
+        } catch (WebDriverException e) {
+            FailureScreenshot.attach();
+            throw e;
+        }
     }
 
     /**
@@ -33,9 +40,14 @@ public class NavigationActions {
     public void refresh() {
         LOGGER.debug("Refreshing the page");
 
-        DriverManager.getDriver()
-                .navigate()
-                .refresh();
+        try {
+            DriverManager.getDriver()
+                    .navigate()
+                    .refresh();
+        } catch (WebDriverException e) {
+            FailureScreenshot.attach();
+            throw e;
+        }
     }
 
     /**
@@ -44,9 +56,14 @@ public class NavigationActions {
     public void back() {
         LOGGER.debug("Navigating back");
 
-        DriverManager.getDriver()
-                .navigate()
-                .back();
+        try {
+            DriverManager.getDriver()
+                    .navigate()
+                    .back();
+        } catch (WebDriverException e) {
+            FailureScreenshot.attach();
+            throw e;
+        }
     }
 
     /**
@@ -55,8 +72,13 @@ public class NavigationActions {
     public void forward() {
         LOGGER.debug("Navigating forward");
 
-        DriverManager.getDriver()
-                .navigate()
-                .forward();
+        try {
+            DriverManager.getDriver()
+                    .navigate()
+                    .forward();
+        } catch (WebDriverException e) {
+            FailureScreenshot.attach();
+            throw e;
+        }
     }
 }

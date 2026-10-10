@@ -1,6 +1,7 @@
 package com.dgcnrsln.automation.actions;
 
 import com.dgcnrsln.automation.drivers.DriverManager;
+import com.dgcnrsln.automation.utils.FailureScreenshot;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriverException;
@@ -36,6 +37,7 @@ public class ElementActions {
         try {
             waitActions.clickable(locator).click();
         } catch (WebDriverException e) {
+            FailureScreenshot.attach();
             throw new RuntimeException("Element could not be clicked. Locator: " + locator, e);
         }
     }
@@ -55,6 +57,7 @@ public class ElementActions {
             ((JavascriptExecutor) DriverManager.getDriver())
                     .executeScript("arguments[0].click();", element);
         } catch (WebDriverException e) {
+            FailureScreenshot.attach();
             throw new RuntimeException("Element could not be clicked via JavaScript. Locator: " + locator, e);
         }
     }
@@ -75,6 +78,7 @@ public class ElementActions {
             element.clear();
             element.sendKeys(text);
         } catch (WebDriverException e) {
+            FailureScreenshot.attach();
             throw new RuntimeException("Text could not be entered. Locator: " + locator, e);
         }
     }
@@ -91,6 +95,7 @@ public class ElementActions {
         try {
             waitActions.visible(locator).clear();
         } catch (WebDriverException e) {
+            FailureScreenshot.attach();
             throw new RuntimeException("Element could not be cleared. Locator: " + locator, e);
         }
     }
@@ -113,6 +118,7 @@ public class ElementActions {
                             element
                     );
         } catch (WebDriverException e) {
+            FailureScreenshot.attach();
             throw new RuntimeException("Element could not be scrolled into view. Locator: " + locator, e);
         }
     }

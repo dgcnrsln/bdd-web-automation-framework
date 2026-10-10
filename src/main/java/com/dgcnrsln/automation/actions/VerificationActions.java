@@ -1,12 +1,13 @@
 package com.dgcnrsln.automation.actions;
 
+import com.dgcnrsln.automation.utils.FailureScreenshot;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriverException;
-import org.testng.Assert;
 
 /**
  * Sayfa elementleri üzerindeki doğrulamalar (görünürlük, metin, değer).
+ * Bir doğrulama başarısız olduğunda hata fırlatılmadan önce ekran görüntüsü rapora eklenir.
  */
 public class VerificationActions {
     private final WaitActions waitActions;
@@ -29,9 +30,9 @@ public class VerificationActions {
         try {
             waitActions.visible(locator);
         } catch (TimeoutException e) {
-            throw new AssertionError("Element is not visible. Locator: " + locator, e);
+            throw failure("Element is not visible. Locator: " + locator, e);
         } catch (WebDriverException e) {
-            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
+            throw error(locator, e);
         }
     }
 
@@ -48,12 +49,14 @@ public class VerificationActions {
         try {
             invisible = waitActions.invisible(locator);
         } catch (TimeoutException e) {
-            throw new AssertionError("Element is still visible. Locator: " + locator, e);
+            throw failure("Element is still visible. Locator: " + locator, e);
         } catch (WebDriverException e) {
-            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
+            throw error(locator, e);
         }
 
-        Assert.assertTrue(invisible, "Element is still visible. Locator: " + locator);
+        if (!invisible) {
+            throw failure("Element is still visible. Locator: " + locator, null);
+        }
     }
 
     /**
@@ -70,18 +73,22 @@ public class VerificationActions {
         try {
             actualText = waitActions.visible(locator).getText();
         } catch (TimeoutException e) {
-            throw new AssertionError("Element is not visible. Locator: " + locator, e);
+            throw failure("Element is not visible. Locator: " + locator, e);
         } catch (WebDriverException e) {
-            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
+            throw error(locator, e);
         }
 
-        Assert.assertTrue(actualText.contains(expectedText),
-                String.format(
-                        "Element: %s%nExpected text to contain '%s'%nActual text: '%s'",
-                        locator,
-                        expectedText,
-                        actualText
-                ));
+        if (!actualText.contains(expectedText)) {
+            throw failure(
+                    String.format(
+                            "Element: %s%nExpected text to contain '%s'%nActual text: '%s'",
+                            locator,
+                            expectedText,
+                            actualText
+                    ),
+                    null
+            );
+        }
     }
 
     /**
@@ -98,25 +105,44 @@ public class VerificationActions {
         try {
             actualValue = waitActions.visible(locator).getDomProperty("value");
         } catch (TimeoutException e) {
-            throw new AssertionError("Element is not visible. Locator: " + locator, e);
+            throw failure("Element is not visible. Locator: " + locator, e);
         } catch (WebDriverException e) {
-            throw new RuntimeException("Verification could not be performed. Locator: " + locator, e);
+            throw error(locator, e);
         }
 
         if (actualValue == null) {
-            throw new AssertionError(String.format(
-                    "Element has no 'value' property. Locator: %s%nExpected value: '%s'",
-                    locator,
-                    expectedValue
-            ));
+            throw failure(
+                    String.format(
+                            "Element has no 'value' property. Locator: %s%nExpected value: '%s'",
+                            locator,
+                            expectedValue
+                    ),
+                    null
+            );
         }
 
-        Assert.assertEquals(actualValue, expectedValue,
-                String.format(
-                        "Element: %s%nExpected value: '%s'%nActual value: '%s'",
-                        locator,
-                        expectedValue,
-                        actualValue
-                ));
+        if (!actualValue.equals(expectedValue)) {
+            throw failure(
+                    String.format(
+                            "Element: %s%nExpected value: '%s'%nActual value: '%s'",
+                            locator,
+                            expectedValue,
+                            actualValue
+                    ),
+                    null
+            );
+        }
+    }
+
+    private AssertionError failure(String message, Throwable cause) {
+        FailureScreenshot.attach();
+
+        return new AssertionError(message, cause);
+    }
+
+    private RuntimeException error(By locator, WebDriverException cause) {
+        FailureScreenshot.attach();
+
+        return new RuntimeException("Verification could not be performed. Locator: " + locator, cause);
     }
 }
