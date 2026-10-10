@@ -429,7 +429,13 @@ Scenario: PD-01 Product detail page displays correct name and price
 
 ### Bağlamsal Hata Mesajları
 
-`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır. `ElementActions` etkileşim hatalarını `RuntimeException`, `VerificationActions` doğrulama hatalarını `AssertionError` olarak fırlatır (Allure'da doğrulama hataları "failed" olarak görünür):
+`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır. Exception türü, hatanın ne olduğuna göre seçilir:
+
+- **`ElementActions`:** Etkileşim hatalarını `RuntimeException` olarak fırlatır (Allure'da "broken").
+- **`VerificationActions`, zaman aşımı:** Element beklenen sürede görünmez ya da kaybolmazsa (`TimeoutException`) bu bir doğrulama hatasıdır ve `AssertionError` olarak fırlatılır (Allure'da "failed").
+- **`VerificationActions`, diğer WebDriver hataları:** Kopan oturum, çöken tarayıcı gibi durumlar doğrulama hatası sayılmaz; locator bilgisini içeren bir `RuntimeException` olarak fırlatılır (Allure'da "broken").
+
+Zaman aşımı örneği:
 
 ```
 java.lang.AssertionError: Element is not visible. Locator: By.cssSelector: .title
