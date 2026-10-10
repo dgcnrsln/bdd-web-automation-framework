@@ -24,6 +24,7 @@ Feature: Product Detail Page Tests
     When I click the "Product Detail Add To Cart"
     When I click the "Product Detail Remove From Cart"
     Then the "Product Detail Add To Cart" should be visible
+    Then the "Cart Badge" should not be visible
 
   Scenario: PD-05 Back to products button returns to inventory page
     When I click the "Back To Products"
