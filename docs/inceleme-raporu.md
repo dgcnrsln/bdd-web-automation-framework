@@ -26,7 +26,7 @@ Katmanlar temiz ve kod küçük. Asıl sorunlar paralel koşum ayarında, CI'ın
 | # | Öncelik | Bulgu | Konum |
 |---|---|---|---|
 | 1 | Kritik — Düzeltildi (`921b6e1`) | "Tekli" suite sıralı değil; iki suite de 10 thread ile koşuyor | `TestRunner.java:23`, `testng-*.xml` |
-| 2 | Kritik | CI, derleme/altyapı hatasında yeşil kalabiliyor | `ci.yml:32-57` |
+| 2 | Kritik — Düzeltildi (`5fc7999`) | CI, derleme/altyapı hatasında yeşil kalabiliyor | `ci.yml:32-57` |
 | 3 | Orta | Aynı isimli locator/veri sessizce üzerine yazılıyor | `JsonDataReader.java:39,58` |
 | 4 | Orta | `config.properties` içindeki `browser` hiç kullanılmıyor; IDE'den koşumda NPE | `Hooks.java:49-65` |
 | 5 | Orta | "should have value" aslında "contains"; null değerde NPE | `VerificationActions.java:46-62` |
@@ -129,10 +129,17 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 9. Bağımlılıklar ve yapılandırma
 
-**[Kritik] CI, senaryo dışı hatalarda yeşil kalabiliyor.**
+**[Kritik — DÜZELTİLDİ] CI, senaryo dışı hatalarda yeşil kalabiliyor.**
 - **Konum:** `ci.yml:31-57`.
 - **Sorun:** Test adımı `continue-on-error: true`. Derleme hatası olursa `target/rerun.txt` hiç oluşmaz, `has_failures=false` çıkar ve rerun atlanır. `mvn allure:report` lifecycle çalıştırmadığı için derlemeyi denemez. Job yeşil biter ve Pages'teki rapor boş bir raporla ezilebilir. Ayrıca ilk koşumda düşüp rerun'da geçen senaryolar sessizce yeşil sayılıyor.
 - **Öneri:** Test adımına `id` verin. Sonda `if: steps.test.outcome == 'failure' && steps.check_rerun.outputs.has_failures != 'true'` koşuluyla `exit 1` yapan bir adım ekleyin. Rerun'da geçen senaryoları job özetine yazdırın.
+- **Düzeltme (2026-10-10):** Commit `5fc7999` (`ci: fail the job on non-scenario test failures`), `docs/inceleme-raporu` dalında. Yalnızca `.github/workflows/ci.yml` değişti.
+  - **Koruma adımı:** Test adımına `id: run_tests` verildi. Job'ın sonuna eklenen "Fail on non-scenario failure" adımı, test adımı başarısız olup `rerun.txt` boş ya da yoksa `exit 1` yapıyor.
+  - **Job özeti:** İlk koşumda düşen senaryolar `GITHUB_STEP_SUMMARY`'ye yazılıyor; rerun'da geçenler artık görünür.
+  - **Pages koruması:** Rapor yalnızca `target/allure-results/*-result.json` varsa Pages'e yükleniyor; `deploy-pages` yalnızca yükleme başarılıysa çalışıyor.
+  - **Doğrulama (yerel):** YAML ayrıştırıldı. Job'ın kabuk mantığı üç durumda simüle edildi: olmayan suite dosyasıyla senaryo dışı hata (koruma devreye girdi, Pages yüklemesi atlandı), normal koşum (19/19 geçti, koruma devreye girmedi), yalnızca LG-09 ile senaryo hatası (rerun tetiklendi, koruma devreye girmedi, senaryo özete yazıldı).
+  - **Doğrulanmayan:** Workflow GitHub Actions üzerinde koşmadı (push yapılmadı). `if:` ifadeleri, `hashFiles` ve job çıktısı (`pages_uploaded`) yalnızca okunarak kontrol edildi; `actionlint` kurulu değildi.
+  - **Bilinen sınır:** Koşum, bazı senaryolar düştükten sonra çökerse `rerun.txt` dolu olur ve koruma devreye girmez; rerun geçerse job yeşil kalır.
 
 **[Orta] Yalnızca testte kullanılan bağımlılıklar compile scope'ta** (`pom.xml:38-54,74-78`). `cucumber-java`, `cucumber-testng`, `cucumber-picocontainer` ve `allure-cucumber7-jvm`'e `<scope>test</scope>` ekleyin.
 
@@ -184,8 +191,8 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 | `allure-maven` rapor sürümü farklı | Doğrulandı | `reportVersion` parametresinin varsayılanı yok; eklenti 2.12.0 kodunda gömülü sürüm 2.20.1, kütüphane 2.29.0 |
 | README'deki SLF4J notu | Kısmen yanlış | `slf4j-api` 1.7.36'yı Selenium değil TestNG getiriyor; Selenium 4.45.0'ın ağacında SLF4J yok |
 | Selenium SLF4J kullanmıyor (`logback.xml:18` etkisiz) | Doğrulandı | Aynı bağımlılık ağacı; `jul-to-slf4j` köprüsü de yok |
-| Boş sonuçla `mvn allure:report` davranışı | Doğrulanmadı | Çalıştırmak `target/` üretip Allure CLI indirirdi; istenen iki komutun kapsamı dışında |
+| Boş sonuçla `mvn allure:report` davranışı | Doğrulandı (2. madde düzeltilirken) | Sonuç klasörü yokken `Allure report was skipped` uyarısı verip `BUILD SUCCESS` ile bitiyor; yani eski pipeline bu durumda gerçekten yeşil kalıyordu |
 
-Hâlâ açık tek nokta son satır: sonuç klasörü yokken `allure:report` hata verirse CI maskeleme senaryosu kısmen kendiliğinden yakalanır. Bölüm 9'daki öneri bu davranıştan bağımsız olarak geçerli.
+Açık kalan doğrulama maddesi yok.
 
 İsterseniz ilk iki kritik maddeyle başlayıp düzeltmeleri uygulayabilirim.
