@@ -253,9 +253,27 @@ Açık kalan doğrulama maddesi yok.
 **Doğrulanmayanlar ve bilinmesi gerekenler:**
 - Madde 2 (screenshot hatası) ve madde 3 (`verifyValueEquals`) hiçbir senaryoda tetiklenmiyor; yalnızca derlendi. "should have value" adımlarını kullanan bir feature yok.
 - Madde 3 bir davranış değişikliğidir: "should have value" adımları artık kısmi eşleşmeyi kabul etmez.
-- Madde 4: `VerificationActions` içindeki üç `catch (WebDriverException)` bloğunun hepsi `AssertionError`'a çevrildi. Bu, doğrulama sırasında oluşan altyapı kaynaklı hataların da (örn. kopan oturum) "failed" olarak görünmesi demek.
+- Madde 4: İlk haliyle (`e1ca570`) `VerificationActions` içindeki üç `catch (WebDriverException)` bloğunun hepsi `AssertionError`'a çevrilmişti; bu, altyapı kaynaklı hataların da (örn. kopan oturum) "failed" görünmesi demekti. Bu yan etki aşağıdaki "Madde 4'e ek düzeltme" ile giderildi.
 - Madde 6: Hata mesajı değerleri içermez (test verisi gizli olabilir), yalnızca isim ve iki dosya adını verir.
 - Madde 9: Workflow'lar GitHub Actions üzerinde koşmadı (push yapılmadı). `test` job'ının `contents: read` ile artifact yükleme ve cache adımlarını çalıştırması beklenir, ancak denenmedi.
+
+**Madde 4'e ek düzeltme (2026-10-10, commit `9fbc764`):**
+
+`VerificationActions` içindeki dört `catch` bloğu daraltıldı:
+- **`TimeoutException`** (element beklenen sürede görünmedi ya da kaybolmadı): locator bilgisini içeren `AssertionError`; Allure'da "failed".
+- **Diğer `WebDriverException` türleri** (kopan oturum, çöken tarayıcı vb.): locator bilgisini içeren `RuntimeException` (`Verification could not be performed. Locator: ...`); Allure'da "broken".
+
+Bu değişiklikten sonraki doğrulama koşumları:
+
+| Koşum | Sonuç | Not |
+|---|---|---|
+| `mvn clean test -Dheadless=true` | 19/19 geçti, 256 adım, 25,3 sn | Log'da 1 thread |
+| Aynı komut, `-DsuiteXmlFile=src/test/resources/testng-parallel.xml` | 19/19 geçti, 256 adım, 14,1 sn | Log'da 3 thread |
+| Yalnızca LG-09 (`-Dcucumber.filter.tags=@excluded-from-ci`) | 1/1 düştü (beklenen) | Hata `java.lang.AssertionError: Element is not visible. Locator: By.cssSelector: .title`; Allure sonuç dosyasında senaryo ve adım durumu `failed`, sonuçta 1 ek (ekran görüntüsü) var |
+
+README'de `VerificationActions`'ı anlatan kısım ("Bağlamsal Hata Mesajları") bu değişiklikle yanlış kalıyordu: tüm doğrulama hatalarının `AssertionError` olduğunu söylüyordu. Commit `d6394cf` ile zaman aşımı ve diğer WebDriver hataları ayrımını anlatacak şekilde güncellendi. LG-09 açıklamasındaki "timeout sonrası `AssertionError` fırlar" ifadesi doğru olduğu için değişmedi.
+
+Doğrulanmayan: `RuntimeException` yolu (zaman aşımı dışındaki WebDriver hataları) hiçbir koşumda tetiklenmedi; kopan oturum ya da çöken tarayıcı durumu denenmedi, yalnızca derlendi.
 
 ## 14. Güncel durum ve açık kalanlar
 
