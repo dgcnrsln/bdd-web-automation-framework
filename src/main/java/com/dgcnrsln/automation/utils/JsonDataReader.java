@@ -7,6 +7,7 @@ import org.openqa.selenium.By;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -75,7 +76,7 @@ public class JsonDataReader {
 
     private File[] listJsonFiles(String jsonFolderPath) {
         File folder = new File(jsonFolderPath);
-        File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        File[] files = folder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".json"));
 
         if (files == null) {
             throw new RuntimeException("Specified folder not found or empty: " + jsonFolderPath);
@@ -96,7 +97,7 @@ public class JsonDataReader {
     }
 
     private By convertToBy(String locatorType, String locatorValue) {
-        return switch (locatorType.toLowerCase()) {
+        return switch (locatorType.toLowerCase(Locale.ROOT)) {
             case "xpath" -> By.xpath(locatorValue);
             case "id" -> By.id(locatorValue);
             case "css", "cssselector" -> By.cssSelector(locatorValue);
