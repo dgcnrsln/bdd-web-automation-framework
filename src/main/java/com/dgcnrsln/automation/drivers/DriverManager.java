@@ -9,7 +9,20 @@ public class DriverManager {
     private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
 
     public static WebDriver getDriver() {
-        return driver.get();
+        WebDriver current = driver.get();
+
+        if (current == null) {
+            throw new IllegalStateException(
+                    "WebDriver has not been initialized for the current thread. "
+                            + "Make sure DriverManager.setDriver() was called (see the @Before hook) before using the driver."
+            );
+        }
+
+        return current;
+    }
+
+    public static boolean hasDriver() {
+        return driver.get() != null;
     }
 
     public static void setDriver(WebDriver driver) {

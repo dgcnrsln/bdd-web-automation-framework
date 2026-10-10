@@ -31,6 +31,11 @@ public class Hooks {
         if (scenario.isFailed()) {
             LOGGER.warn("Step failed in scenario: {}", scenario.getName());
 
+            if (!DriverManager.hasDriver()) {
+                LOGGER.warn("No active driver, failure screenshot skipped for scenario: {}", scenario.getName());
+                return;
+            }
+
             byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
                     .getScreenshotAs(OutputType.BYTES);
 
