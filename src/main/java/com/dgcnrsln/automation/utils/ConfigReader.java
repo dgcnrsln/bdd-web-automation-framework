@@ -10,9 +10,13 @@ public class ConfigReader {
     static {
         try (InputStream input = ConfigReader.class.getClassLoader()
                 .getResourceAsStream("config.properties")) {
-            if (input != null) {
-                PROPERTIES.load(input);
+            if (input == null) {
+                throw new IllegalStateException(
+                        "config.properties was not found on the classpath (expected under src/test/resources)."
+                );
             }
+
+            PROPERTIES.load(input);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load config.properties", e);
         }
