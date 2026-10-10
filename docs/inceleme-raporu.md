@@ -4,7 +4,7 @@ Bu rapor 2026-10-10 tarihinde, `c1c5671` commit'indeki kod üzerinde yapılan in
 
 - **İnceleme (bölüm 1-10):** İzlenen 47 dosyanın tamamı okundu; bulgular statik incelemeye dayanıyor ve o aşamada hiçbir dosya değiştirilmedi. Bu bölümlerdeki dosya ve satır numaraları inceleme anındaki koda göredir.
 - **Doğrulama (bölüm 11):** Belirsiz kalan noktalar sonradan Maven komutlarıyla ve testler çalıştırılarak kontrol edildi.
-- **Düzeltmeler (bölüm 12-14):** Bulguların bir kısmı `docs/inceleme-raporu` dalında ayrı commit'lerle düzeltildi. Düzeltilen maddeler yerinde commit koduyla işaretli; işaretsiz maddeler hâlâ açık. Son durumda `mvn clean test -Dheadless=true` 19 senaryonun 19'unu geçiriyor. Hiçbir şey push edilmedi.
+- **Düzeltmeler (bölüm 12-15):** Bulguların bir kısmı `docs/inceleme-raporu` dalında ayrı commit'lerle düzeltildi. Düzeltilen maddeler yerinde commit koduyla işaretli; işaretsiz maddeler hâlâ açık. Son durumda `mvn clean test -Dheadless=true` 19 senaryonun 19'unu geçiriyor.
 
 ## 1. Özet
 
@@ -101,8 +101,8 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 5. Mimari ve kod organizasyonu
 
-- **[Orta — Ertelendi, bkz. bölüm 15] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
-- **[Orta — Ertelendi, bkz. bölüm 15] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
+- **[Orta — Ertelendi, bkz. bölüm 16] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
+- **[Orta — Ertelendi, bkz. bölüm 16] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
 - **[Orta] `JsonDataReader` iki iş yapıyor.** Her örnek aynı klasör için hem locator hem veri map'i yüklüyor (`JsonDataReader.java:23-24`); `EnvironmentRepository.java:14` de URL almak için `getTestData` çağırıyor ve ortam dosyasının kök anahtarı `testData`. Locator ve anahtar-değer okuyucularını ayırın.
 - **[Düşük] DI ile statik erişim karışık.** Actions sınıfları `DriverManager.getDriver()`'ı statik çağırıyor. PicoContainer zaten senaryo başına örnek ürettiği için sürücüyü enjekte edilen bir sınıfta tutmak `ThreadLocal`'ı gereksiz kılar.
 - **[Düşük — Giderildi, `00c2e5b`] `VerificationActions` `src/main` içinde TestNG `Assert` kullanıyor**; bu yüzden TestNG compile scope'ta kalmak zorunda. Ekran görüntüsü değişikliğiyle (bölüm 14) `Assert` çağrıları kalktı; `src/main` artık TestNG kullanmıyor. `pom.xml`'de TestNG'nin scope'u değiştirilmedi.
@@ -126,7 +126,7 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 8. Test eksikleri
 
-- **[Orta — Ertelendi, bkz. bölüm 15] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
+- **[Orta — Ertelendi, bkz. bölüm 16] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
 - **[Orta — Düzeltildi, `79f20ef`] Senaryo başlığı ile doğrulama uyuşmuyor.** `inventory.feature:14-17` "Cart badge disappears" diyor ama "Add To Cart" görünürlüğünü kontrol ediyor; `product-detail.feature:23-26` de aynı. `Then the "Cart Badge" should not be visible` ekleyin.
 - **[Orta] Çatı kodunun birim testi yok.** `JsonDataReader` (eksik alan, çakışma, bilinmeyen locator tipi) ve `ConfigReader` (öncelik sırası) tarayıcısız test edilebilir.
 - **[Düşük] LG-09'un adı ve doğrulaması çelişiyor** (`login.feature:49-54`): "should not show" diyor, "should be visible" bekliyor. Kasıtlı olduğu README'de yazıyor; `@demo-failure` gibi bir etiket ve ayrı feature dosyası daha net olur.
@@ -302,7 +302,34 @@ Cucumber'ın adım sayısı 256'dan 147'ye indi; fark, artık çalışmayan `@Af
 
 Bölüm 12 ve 13'te `@AfterStep` hook'una yapılan düzeltmeler (`46f530e`, `768743a`) o hook kaldırıldığı için artık kodda yok; aynı korumalar `FailureScreenshot` içinde duruyor.
 
-## 15. Güncel durum ve açık kalanlar
+## 15. Push öncesi son kontrol (2026-10-10)
+
+Dalın tamamı push öncesinde yeniden gözden geçirildi. Engelleyici bir bulgu çıkmadı; bir kod düzeltmesi yapıldı ve bölüm 14'te eksik kalan bir doğrulama tamamlandı.
+
+**Tarayıcı sızıntısı düzeltmesi** (commit `4f2b2dc`, `fix: close the browser when driver configuration fails`):
+- **Sorun:** `DriverFactory.createDriver` içinde tarayıcı açıldıktan sonraki ayarlar (sayfa yükleme zaman aşımı, `maximize`) hata fırlatırsa driver henüz `DriverManager`'a kaydedilmediği için `@After` onu kapatamıyor, tarayıcı açık kalıyordu. Bu yol `5c2f836` ile gelmişti; inceleme raporunda bulgu olarak yer almıyordu.
+- **Değişiklik:** Bu ayarlar bir `try` bloğuna alındı. Hata olursa uyarı loglanıyor, `driver.quit()` çağrılıyor ve aynı hata yeniden fırlatılıyor. `quit()` de hata verirse asıl hatayı gölgelemiyor; ona `suppressed` olarak ekleniyor.
+- **Doğrulama:** LG-09 `-Dpage.load.timeout=abc` ile koşturuldu. Log'da `Driver configuration failed, closing the browser: For input string: "abc"` uyarısı çıktı, senaryo `NumberFormatException` ile düştü ve koşum sonunda açık `chromedriver` süreci kalmadı.
+- **Doğrulanmayan:** `maximize` hatası ve `quit()`'in de hata verdiği durum tetiklenmedi.
+
+**Paralel koşumda ekran görüntüsü** (LG-09 dahil 20 senaryo):
+
+Bölüm 14'teki paralel koşumda düşen senaryo yoktu; ekin paralel koşumda da doğru adıma bağlandığı görülmemişti. Bunun için şu komut çalıştırıldı:
+
+```
+mvn clean test "-Dheadless=true" "-Dcucumber.filter.tags=@run" "-DsuiteXmlFile=src/test/resources/testng-parallel.xml"
+```
+
+| Kontrol | Sonuç |
+|---|---|
+| Senaryo ve adım sayısı | 20 senaryo, 154 adım, 23,2 sn; log'da 3 thread |
+| Geçen / düşen | 19 geçti, 1 düştü (beklenen); `rerun.txt` içinde yalnızca `login.feature:50` |
+| LG-09 | Durum `failed`; "Failure Screenshot" eki başarısız `Then the "Products Title" should be visible` adımının `attachments` listesinde |
+| Diğer 19 senaryo | Hiçbirinde ek yok (adım, senaryo, `setup` ve `teardown` düzeyinde) |
+
+Sonuç klasöründe tek bir ek dosyası oluştu. Kontrol, bölüm 14'teki gibi Allure sonuç JSON dosyaları üzerinden yapıldı; raporun tarayıcıdaki görünümüne bakılmadı.
+
+## 16. Güncel durum ve açık kalanlar
 
 Öncelik tablosundaki on maddenin yedisi düzeltildi (iki kritik madde ve 3-7 numaralı orta öncelikli maddeler). Kalan üç madde proje sahibinin bilinçli kararıyla ertelendi; bunlar unutulmuş açık işler değil, koşulu gerçekleşince ele alınacak maddelerdir.
 
