@@ -68,24 +68,33 @@ public class VerificationActions {
     }
 
     /**
-     * Elementin {@code value} özniteliğinin beklenen değeri içerdiğini doğrular.
+     * Elementin {@code value} özelliğinin beklenen değere tam olarak eşit olduğunu doğrular.
      *
      * @param locator       doğrulanacak elementin locator'ı
-     * @param expectedValue özniteliğin içermesi beklenen değer
+     * @param expectedValue özelliğin eşit olması beklenen değer
      * @throws RuntimeException element görünür olmazsa
+     * @throws AssertionError   elementin {@code value} özelliği yoksa veya değer eşit değilse
      */
-    public void verifyValueContains(By locator, String expectedValue) {
+    public void verifyValueEquals(By locator, String expectedValue) {
         String actualValue;
 
         try {
-            actualValue = waitActions.visible(locator).getAttribute("value");
+            actualValue = waitActions.visible(locator).getDomProperty("value");
         } catch (WebDriverException e) {
             throw new RuntimeException("Element is not visible. Locator: " + locator, e);
         }
 
-        Assert.assertTrue(actualValue.contains(expectedValue),
+        if (actualValue == null) {
+            throw new AssertionError(String.format(
+                    "Element has no 'value' property. Locator: %s%nExpected value: '%s'",
+                    locator,
+                    expectedValue
+            ));
+        }
+
+        Assert.assertEquals(actualValue, expectedValue,
                 String.format(
-                        "Element: %s%nExpected value to contain '%s'%nActual text: '%s'",
+                        "Element: %s%nExpected value: '%s'%nActual value: '%s'",
                         locator,
                         expectedValue,
                         actualValue

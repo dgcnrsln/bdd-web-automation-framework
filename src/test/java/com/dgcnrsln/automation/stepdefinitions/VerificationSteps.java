@@ -50,7 +50,7 @@ public class VerificationSteps {
 
     @Then("the {string} should have value {string}")
     public void shouldHaveValue(String elementName, String expectedValue) {
-        verificationActions.verifyValueContains(
+        verificationActions.verifyValueEquals(
                 locatorRepository.getLocator(elementName),
                 expectedValue
         );
@@ -58,7 +58,7 @@ public class VerificationSteps {
 
     @Then("the {string} should have value from the data {string}")
     public void shouldHaveValueData(String elementName, String expectedValue) {
-        verificationActions.verifyValueContains(
+        verificationActions.verifyValueEquals(
                 locatorRepository.getLocator(elementName),
                 dataRepository.getTestData(expectedValue)
         );
