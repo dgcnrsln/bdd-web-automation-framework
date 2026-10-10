@@ -25,7 +25,7 @@ Katmanlar temiz ve kod küçük. Asıl sorunlar paralel koşum ayarında, CI'ın
 
 | # | Öncelik | Bulgu | Konum |
 |---|---|---|---|
-| 1 | Kritik | "Tekli" suite sıralı değil; iki suite de 10 thread ile koşuyor | `TestRunner.java:23`, `testng-*.xml` |
+| 1 | Kritik — Düzeltildi (`921b6e1`) | "Tekli" suite sıralı değil; iki suite de 10 thread ile koşuyor | `TestRunner.java:23`, `testng-*.xml` |
 | 2 | Kritik | CI, derleme/altyapı hatasında yeşil kalabiliyor | `ci.yml:32-57` |
 | 3 | Orta | Aynı isimli locator/veri sessizce üzerine yazılıyor | `JsonDataReader.java:39,58` |
 | 4 | Orta | `config.properties` içindeki `browser` hiç kullanılmıyor; IDE'den koşumda NPE | `Hooks.java:49-65` |
@@ -38,10 +38,14 @@ Katmanlar temiz ve kod küçük. Asıl sorunlar paralel koşum ayarında, CI'ın
 
 ## 3. Hatalar ve hataya açık kod
 
-**[Kritik] Suite'ler iddia edilen thread sayısıyla koşmuyor.**
+**[Kritik — DÜZELTİLDİ] Suite'ler iddia edilen thread sayısıyla koşmuyor.**
 - **Konum:** `TestRunner.java:22-26`, `RerunRunner.java:20-24`, `testng-single.xml:4`, `testng-parallel.xml:5-6`.
 - **Sorun:** Runner'lar `@DataProvider(parallel = true)` kullanıyor. Bu havuzun boyutunu `thread-count` değil `data-provider-thread-count` belirler ve varsayılanı 10'dur. Yani `testng-single.xml` de paralel koşar, `testng-parallel.xml` içindeki `thread-count="3"` ise senaryo sayısını etkilemez. CI, 4 çekirdekli runner'da aynı anda 10 Chrome açıp herkese açık bir siteye yüklenir; bu doğrudan flaky test kaynağıdır.
 - **Öneri:** `testng-single.xml`'e `data-provider-thread-count="1"`, `testng-parallel.xml`'e `data-provider-thread-count="3"` ekleyin. Alternatif olarak surefire'da `dataproviderthreadcount` özelliğini `-Dthreads` ile parametrik yapın.
+- **Düzeltme (2026-10-10):** Commit `921b6e1` (`fix: set data-provider-thread-count in TestNG suites`), `docs/inceleme-raporu` dalında.
+  - **Değişiklik:** `testng-single.xml`'e `data-provider-thread-count="1"`, `testng-parallel.xml`'e `data-provider-thread-count="3"`, `testng-rerun.xml`'e `data-provider-thread-count="1"` eklendi. Java koduna dokunulmadı.
+  - **Doğrulama (headless Chrome):** Tekli suite 19/19 geçti, 28,9 sn, log'da 1 thread. Paralel suite 19/19 geçti, 12,9 sn, log'da 3 thread.
+  - **Doğrulanmayan:** Rerun suite koşmadı (başarısız senaryo yoktu). Değişiklik öncesindeki 10 thread ölçülmedi; değer TestNG'nin varsayılanından biliniyor.
 
 **[Orta] Aynı isimli kayıtlar sessizce eziliyor.**
 - **Konum:** `JsonDataReader.java:39,58`; somut örnek `inventory.json:4` ve `product-detail.json:10` ("Cart Badge").
@@ -108,7 +112,7 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 7. Performans
 
-- **[Kritik]** Kontrolsüz 10 thread (bölüm 3'ün ilk maddesi) aynı zamanda en büyük performans ve kararlılık riski.
+- **[Kritik — Düzeltildi]** Kontrolsüz 10 thread (bölüm 3'ün ilk maddesi) aynı zamanda en büyük performans ve kararlılık riskiydi. `921b6e1` ile giderildi.
 - **[Düşük] Her senaryo yeni tarayıcı açıp UI'dan login oluyor** (`Hooks.java:24`). 19 senaryoda sorun değil; büyürse login'i `session-username` çerezi ile atlayın.
 - **[Düşük] Metin doğrulaması tek seferlik okuma yapıyor** (`VerificationActions.java:32`). Geç güncellenen metinlerde flaky olur; `ExpectedConditions.textToBePresentInElementLocated` kullanın.
 - **[Düşük] Her klasör iki kez parse ediliyor** (bölüm 5'teki çift yükleme). Etkisi ihmal edilebilir.
@@ -161,7 +165,7 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 10. Dokümantasyon
 
-- **[Orta] README koşum modlarını yanlış anlatıyor.** `README.md:215` "Tekli (Sıralı)" ve `:223` "3 paralel thread" diyor; ikisi de kodla uyuşmuyor (bölüm 3'ün ilk maddesi).
+- **[Orta — Giderildi] README koşum modlarını yanlış anlatıyor.** `README.md:215` "Tekli (Sıralı)" ve `:223` "3 paralel thread" diyor; ikisi de kodla uyuşmuyordu (bölüm 3'ün ilk maddesi). Suite'ler `921b6e1` ile düzeltildiği için bu ifadeler artık kodla uyuşuyor; README'de değişiklik gerekmedi.
 - **[Orta] Tarayıcı önceliği yanıltıcı.** `README.md:249-254` sırayı doğru veriyor ama `config.properties`'in pratikte hiç devreye girmediğini söylemiyor.
 - **[Düşük] Abartılı iddialar:** `README.md:49` "tüm etkileşimler WebDriverWait ile" (alert ve Enter hariç); `:430` "VerificationActions exception'ları sarmalar" (`verifyElementInvisible` hariç).
 - **[Düşük] SLF4J notunun kaynağı yanlış** (`README.md:105`). Not, eski `slf4j-api` 1.7.x'i Selenium'un getirdiğini söylüyor. `mvn dependency:tree -Dverbose` çıktısına göre 1.7.36'yı TestNG 7.10.2 getiriyor; Selenium'un ağacında SLF4J yok. Sürümü sabitleme kararı doğru, yalnızca gerekçedeki kütüphane adını düzeltin.
