@@ -102,7 +102,7 @@ Bu akıştaki en önemli mimari kararlar:
 
 > **Not:** Selenium 4.45.0, tarayıcı sürücü (driver binary) yönetimini dahili **Selenium Manager** ile otomatik olarak gerçekleştirir; ayrı bir WebDriverManager bağımlılığına ihtiyaç duyulmaz.
 >
-> **Not:** `slf4j-api`, Selenium'un transitive olarak getirdiği eski sürümle (1.7.x) çakışmaması için pom.xml'de **doğrudan (explicit)** ve Logback ile uyumlu bir sürümde (2.0.16) sabitlenmiştir.
+> **Not:** `slf4j-api`, TestNG'nin transitive olarak getirdiği eski sürümle (1.7.36) çakışmaması için pom.xml'de **doğrudan (explicit)** ve Logback ile uyumlu bir sürümde (2.0.16) sabitlenmiştir.
 
 ---
 
@@ -125,6 +125,7 @@ BDDWebAutomationFramework/
 │   │   │   │   ├── VerificationActions.java
 │   │   │   │   └── WaitActions.java
 │   │   │   ├── drivers/
+│   │   │   │   ├── BrowserType.java
 │   │   │   │   ├── DriverFactory.java
 │   │   │   │   └── DriverManager.java
 │   │   │   ├── repositories/
@@ -204,7 +205,7 @@ BDDWebAutomationFramework/
 
 ```bash
 git clone <repository-url>
-cd BDDWebAutomationFramework
+cd bdd-web-automation-framework
 mvn clean install -DskipTests
 ```
 
@@ -246,18 +247,19 @@ CI ortamlarında pencere açmadan çalıştırmak için kullanılır; kalıcı o
 
 ### Tarayıcı Seçimi
 
-Tarayıcı bilgisi şu öncelik sırasına göre çözülür (`Hooks.resolveBrowser()`):
+Tarayıcı bilgisi `ConfigReader.get("browser", "chrome")` ile, şu öncelik sırasına göre çözülür:
 
 1. **JVM sistem property'si** — her zaman önceliklidir: `-Dbrowser=firefox`
-2. **TestNG suite XML dosyasındaki parametre** (geriye dönük uyumluluk için): `<parameter name="browser" value="chrome"/>`
-3. **`config.properties`** dosyasındaki `browser` değeri
-4. **Varsayılan:** `chrome`
+2. **`config.properties`** dosyasındaki `browser` değeri
+3. **Varsayılan:** `chrome`
 
-Desteklenen değerler: `chrome`, `firefox`, `edge`.
+TestNG suite XML dosyalarında tarayıcı parametresi yoktur; tarayıcı yalnızca yukarıdaki kaynaklardan okunur.
+
+Desteklenen değerler (büyük/küçük harf duyarsız): `chrome`, `firefox`, `edge`. Geçersiz bir değer verilirse `BrowserType.fromString`, desteklenen tarayıcıları listeleyen bir hata fırlatır.
 
 ### Etiket (Tag) Bazlı Çalıştırma
 
-`TestRunner`, varsayılan olarak `@run` etiketine sahip senaryoları çalıştırır. Belirli bir senaryo grubunu dahil etmek/hariç tutmak için `.feature` dosyalarındaki etiketleri veya `TestRunner`'daki `tags` ifadesini güncelleyebilirsiniz.
+`TestRunner`, varsayılan olarak `@run and not @excluded-from-ci` ifadesiyle çalışır: `@run` etiketine sahip, ancak `@excluded-from-ci` ile işaretlenmemiş senaryolar koşar (bu filtre yerelde de geçerlidir). Belirli bir senaryo grubunu dahil etmek/hariç tutmak için `.feature` dosyalarındaki etiketleri veya `TestRunner`'daki `tags` ifadesini güncelleyebilirsiniz.
 
 ---
 
@@ -366,7 +368,7 @@ Scenario: LG-09 Invalid credentials should not show products title (Fail Scenari
     Then the "Products Title" should be visible
 ```
 
-Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `RuntimeException` fırlar ve `Hooks.attachScreenshotOnFailure` otomatik devreye girip ekran görüntüsünü Allure raporuna gömer.
+Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `AssertionError` fırlar ve `Hooks.attachScreenshotOnFailure` otomatik devreye girip ekran görüntüsünü Allure raporuna gömer.
 
 > **Not:** Bu senaryo, framework'ün hata yakalama/raporlama/otomatik screenshot mekanizmasını göstermek amacıyla **bilerek** her zaman başarısız olacak şekilde kurgulanmıştır — bir bug değildir. Bu yüzden `@excluded-from-ci` etiketiyle işaretlenmiştir ve `TestRunner`'ın `tags = "@run and not @excluded-from-ci"` filtresi sayesinde CI koşumlarına dahil edilmez; CI her zaman yeşil kalır. Senaryoyu bilerek çalıştırmak istersen (örn. rapor mekanizmasını göstermek için) `.feature` dosyasından `@excluded-from-ci` etiketini geçici olarak kaldırman yeterli.
 
@@ -427,10 +429,10 @@ Scenario: PD-01 Product detail page displays correct name and price
 
 ### Bağlamsal Hata Mesajları
 
-`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır:
+`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır. `ElementActions` etkileşim hatalarını `RuntimeException`, `VerificationActions` doğrulama hatalarını `AssertionError` olarak fırlatır (Allure'da doğrulama hataları "failed" olarak görünür):
 
 ```
-java.lang.RuntimeException: Element is not visible. Locator: By.cssSelector: .title
+java.lang.AssertionError: Element is not visible. Locator: By.cssSelector: .title
 Caused by: org.openqa.selenium.TimeoutException: ...
 ```
 
@@ -438,15 +440,19 @@ Orijinal Selenium exception'ı `cause` olarak korunur; stack trace'de teknik det
 
 ### Otomatik Screenshot (Başarısız Adımlarda)
 
-`Hooks` sınıfındaki `@AfterStep` hook'u, her adımdan sonra çalışır ve yalnızca `scenario.isFailed()` `true` ise ekran görüntüsü alıp doğrudan Allure raporuna gömer:
+`Hooks` sınıfındaki `@AfterStep` hook'u, her adımdan sonra çalışır ve yalnızca `scenario.isFailed()` `true` ise ekran görüntüsü alıp doğrudan Allure raporuna gömer. Driver yoksa ya da ekran görüntüsü alınamazsa yalnızca uyarı loglanır; asıl test hatası gölgelenmez (aşağıdaki örnek sadeleştirilmiştir):
 
 ```java
 @AfterStep
 public void attachScreenshotOnFailure(Scenario scenario) {
-    if (scenario.isFailed()) {
-        byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                .getScreenshotAs(OutputType.BYTES);
-        scenario.attach(screenshot, "image/png", "Failure Screenshot");
+    if (scenario.isFailed() && DriverManager.hasDriver()) {
+        try {
+            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
+                    .getScreenshotAs(OutputType.BYTES);
+            scenario.attach(screenshot, "image/png", "Failure Screenshot");
+        } catch (RuntimeException e) {
+            LOGGER.warn("Failure screenshot could not be taken: {}", e.getMessage());
+        }
     }
 }
 ```
