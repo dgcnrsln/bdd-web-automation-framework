@@ -11,6 +11,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    outputs:
+      pages_uploaded: ${{ steps.upload_pages.outcome }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +32,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2-
 
       - name: Run tests (headless)
+        id: run_tests
         continue-on-error: true
         run: >
           mvn clean test
@@ -41,6 +45,13 @@ jobs:
         run: |
           if [ -s target/rerun.txt ]; then
             echo "has_failures=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Scenarios that failed on the first run (rerun attempted)"
+              echo '```'
+              cat target/rerun.txt
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "has_failures=false" >> "$GITHUB_OUTPUT"
           fi
@@ -79,14 +90,21 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload Pages artifact
-        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        id: upload_pages
+        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && hashFiles('target/allure-results/*-result.json') != ''
         uses: actions/upload-pages-artifact@v3
         with:
           path: target/site/allure-maven-plugin
 
+      - name: Fail on non-scenario failure
+        if: always() && steps.run_tests.outcome == 'failure' && steps.check_rerun.outputs.has_failures != 'true'
+        run: |
+          echo "::error::Test run failed without any failed scenario in target/rerun.txt (compilation, suite or infrastructure error)."
+          exit 1
+
   deploy-pages:
     needs: test
-    if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: always() && needs.test.outputs.pages_uploaded == 'success'
     runs-on: ubuntu-latest
 
     permissions:
