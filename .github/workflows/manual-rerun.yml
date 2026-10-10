@@ -7,6 +7,10 @@ on:
         description: 'rerun.txt dosyasinin cekilecegi CI run ID'
         required: true
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   rerun:
     runs-on: ubuntu-latest
