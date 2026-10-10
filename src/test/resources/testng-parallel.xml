@@ -3,9 +3,8 @@
 
 <suite name="Parallel Run"
        parallel="methods"
-       thread-count="3">
-
-    <parameter name="browser" value="chrome"/>
+       thread-count="3"
+       data-provider-thread-count="3">
 
     <test name="Cucumber">
         <classes>

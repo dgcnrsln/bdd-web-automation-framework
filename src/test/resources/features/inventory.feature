@@ -15,6 +15,7 @@ Feature: Inventory Page Tests
     When I click the "Add To Cart"
     When I click the "Inventory Remove Button"
     Then the "Add To Cart" should be visible
+    Then the "Cart Badge" should not be visible
 
   Scenario: INV-03 Burger menu shows logout link
     When I click the "Menu Button"

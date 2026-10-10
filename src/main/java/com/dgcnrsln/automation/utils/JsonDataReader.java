@@ -7,9 +7,14 @@ import org.openqa.selenium.By;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Bir klasördeki JSON dosyalarından locator ve anahtar-değer verilerini okur.
+ * Her klasör yalnızca bir kez okunur; sonuçlar thread-safe bir cache'te tutulur.
+ */
 public class JsonDataReader {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -19,6 +24,13 @@ public class JsonDataReader {
     private final Map<String, By> locatorMap;
     private final Map<String, String> testDataMap;
 
+    /**
+     * Verilen klasördeki tüm JSON dosyalarını yükler (daha önce yüklendiyse cache'ten alır).
+     *
+     * @param jsonFolderPath JSON dosyalarının bulunduğu klasörün yolu
+     * @throws RuntimeException      klasör bulunamazsa veya bir dosya okunamazsa
+     * @throws IllegalStateException aynı isim farklı dosyalarda farklı değerle tanımlanmışsa
+     */
     public JsonDataReader(String jsonFolderPath) {
         this.locatorMap = LOCATOR_CACHE.computeIfAbsent(jsonFolderPath, path -> loadLocators(path));
         this.testDataMap = DATA_CACHE.computeIfAbsent(jsonFolderPath, path -> loadTestData(path));
@@ -26,6 +38,7 @@ public class JsonDataReader {
 
     private Map<String, By> loadLocators(String jsonFolderPath) {
         Map<String, By> locators = new HashMap<>();
+        Map<String, String> sourceFiles = new HashMap<>();
 
         for (File file : listJsonFiles(jsonFolderPath)) {
             JsonNode rootNode = readTree(file);
@@ -36,7 +49,7 @@ public class JsonDataReader {
                     String type = element.get("locatorType").asText();
                     String value = element.get("locatorValue").asText();
 
-                    locators.put(name, convertToBy(type, value));
+                    putUnique(locators, sourceFiles, "locator", name, convertToBy(type, value), file);
                 });
             }
         }
@@ -46,6 +59,7 @@ public class JsonDataReader {
 
     private Map<String, String> loadTestData(String jsonFolderPath) {
         Map<String, String> testData = new HashMap<>();
+        Map<String, String> sourceFiles = new HashMap<>();
 
         for (File file : listJsonFiles(jsonFolderPath)) {
             JsonNode rootNode = readTree(file);
@@ -55,7 +69,7 @@ public class JsonDataReader {
                     String name = data.get("key").asText();
                     String value = data.get("value").asText();
 
-                    testData.put(name, value);
+                    putUnique(testData, sourceFiles, "test data", name, value, file);
                 });
             }
         }
@@ -63,9 +77,31 @@ public class JsonDataReader {
         return testData;
     }
 
+    private <T> void putUnique(Map<String, T> target,
+                               Map<String, String> sourceFiles,
+                               String kind,
+                               String name,
+                               T value,
+                               File file) {
+        T existing = target.get(name);
+
+        if (existing != null && !existing.equals(value)) {
+            throw new IllegalStateException(String.format(
+                    "Duplicate %s '%s' is defined with different values in '%s' and '%s'.",
+                    kind,
+                    name,
+                    sourceFiles.get(name),
+                    file.getName()
+            ));
+        }
+
+        target.put(name, value);
+        sourceFiles.putIfAbsent(name, file.getName());
+    }
+
     private File[] listJsonFiles(String jsonFolderPath) {
         File folder = new File(jsonFolderPath);
-        File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        File[] files = folder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".json"));
 
         if (files == null) {
             throw new RuntimeException("Specified folder not found or empty: " + jsonFolderPath);
@@ -86,7 +122,7 @@ public class JsonDataReader {
     }
 
     private By convertToBy(String locatorType, String locatorValue) {
-        return switch (locatorType.toLowerCase()) {
+        return switch (locatorType.toLowerCase(Locale.ROOT)) {
             case "xpath" -> By.xpath(locatorValue);
             case "id" -> By.id(locatorValue);
             case "css", "cssselector" -> By.cssSelector(locatorValue);
@@ -98,6 +134,13 @@ public class JsonDataReader {
         };
     }
 
+    /**
+     * Element adına karşılık gelen locator'ı döndürür.
+     *
+     * @param elementName elementin JSON'daki adı
+     * @return elemente ait Selenium locator'ı
+     * @throws RuntimeException element adı bulunamazsa
+     */
     public By getLocator(String elementName) {
         if (!locatorMap.containsKey(elementName)) {
             throw new RuntimeException("Locator not found: " + elementName);
@@ -106,6 +149,13 @@ public class JsonDataReader {
         return locatorMap.get(elementName);
     }
 
+    /**
+     * Anahtara karşılık gelen veriyi döndürür.
+     *
+     * @param elementName verinin JSON'daki anahtarı
+     * @return anahtara ait değer
+     * @throws RuntimeException anahtar bulunamazsa
+     */
     public String getTestData(String elementName) {
         if (!testDataMap.containsKey(elementName)) {
             throw new RuntimeException("Test data not found: " + elementName);

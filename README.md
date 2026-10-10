@@ -41,7 +41,7 @@ Referans uygulama olarak [Sauce Demo](https://www.saucedemo.com/) — herkese a�
 - **Paralel Çalıştırma Desteği:** TestNG suite tanımları ile tekli, paralel (method bazlı, 3 thread) ve rerun (yalnızca başarısız senaryolar) çalıştırma modları hazır durumdadır.
 - **Generic ve Yeniden Kullanılabilir Step Definitions:** 21 adet generic Gherkin adımı ile çoğu senaryo yeni Java kodu yazılmadan kurgulanabilir.
 - **Bağlamsal Hata Mesajları:** Element etkileşimleri başarısız olduğunda, hangi locator üzerinde başarısız olduğunu belirten anlamlı exception mesajları fırlatılır.
-- **Başarısız Adımlarda Otomatik Screenshot:** Bir adım başarısız olduğunda ekran görüntüsü otomatik alınır ve doğrudan Allure raporuna gömülür.
+- **Başarısız Adımlarda Otomatik Screenshot:** Bir adım başarısız olduğunda ekran görüntüsü otomatik alınır ve Allure raporunda doğrudan o başarısız adımın içine gömülür.
 - **Allure Raporlama:** Cucumber senaryoları, adımları, ekran görüntüleri ve retry geçmişi Allure üzerinden görselleştirilir.
 - **Otomatik ve Manuel Rerun:** Başarısız senaryolar `rerun.txt`'e yazılır; hem aynı CI koşumu içinde otomatik hem de GitHub Actions üzerinden manuel olarak yalnızca başarısız senaryolar yeniden çalıştırılabilir.
 - **SLF4J + Logback Loglama:** Her log satırına thread adı ve timestamp eklenir; paralel koşumda hangi logun hangi senaryoya ait olduğu netleşir.
@@ -102,7 +102,7 @@ Bu akıştaki en önemli mimari kararlar:
 
 > **Not:** Selenium 4.45.0, tarayıcı sürücü (driver binary) yönetimini dahili **Selenium Manager** ile otomatik olarak gerçekleştirir; ayrı bir WebDriverManager bağımlılığına ihtiyaç duyulmaz.
 >
-> **Not:** `slf4j-api`, Selenium'un transitive olarak getirdiği eski sürümle (1.7.x) çakışmaması için pom.xml'de **doğrudan (explicit)** ve Logback ile uyumlu bir sürümde (2.0.16) sabitlenmiştir.
+> **Not:** `slf4j-api`, TestNG'nin transitive olarak getirdiği eski sürümle (1.7.36) çakışmaması için pom.xml'de **doğrudan (explicit)** ve Logback ile uyumlu bir sürümde (2.0.16) sabitlenmiştir.
 
 ---
 
@@ -125,6 +125,7 @@ BDDWebAutomationFramework/
 │   │   │   │   ├── VerificationActions.java
 │   │   │   │   └── WaitActions.java
 │   │   │   ├── drivers/
+│   │   │   │   ├── BrowserType.java
 │   │   │   │   ├── DriverFactory.java
 │   │   │   │   └── DriverManager.java
 │   │   │   ├── repositories/
@@ -133,6 +134,7 @@ BDDWebAutomationFramework/
 │   │   │   │   └── LocatorRepository.java
 │   │   │   └── utils/
 │   │   │       ├── ConfigReader.java
+│   │   │       ├── FailureScreenshot.java
 │   │   │       ├── JsonDataReader.java
 │   │   │       └── ResourcePaths.java
 │   │   └── resources/
@@ -204,7 +206,7 @@ BDDWebAutomationFramework/
 
 ```bash
 git clone <repository-url>
-cd BDDWebAutomationFramework
+cd bdd-web-automation-framework
 mvn clean install -DskipTests
 ```
 
@@ -246,18 +248,19 @@ CI ortamlarında pencere açmadan çalıştırmak için kullanılır; kalıcı o
 
 ### Tarayıcı Seçimi
 
-Tarayıcı bilgisi şu öncelik sırasına göre çözülür (`Hooks.resolveBrowser()`):
+Tarayıcı bilgisi `ConfigReader.get("browser", "chrome")` ile, şu öncelik sırasına göre çözülür:
 
 1. **JVM sistem property'si** — her zaman önceliklidir: `-Dbrowser=firefox`
-2. **TestNG suite XML dosyasındaki parametre** (geriye dönük uyumluluk için): `<parameter name="browser" value="chrome"/>`
-3. **`config.properties`** dosyasındaki `browser` değeri
-4. **Varsayılan:** `chrome`
+2. **`config.properties`** dosyasındaki `browser` değeri
+3. **Varsayılan:** `chrome`
 
-Desteklenen değerler: `chrome`, `firefox`, `edge`.
+TestNG suite XML dosyalarında tarayıcı parametresi yoktur; tarayıcı yalnızca yukarıdaki kaynaklardan okunur.
+
+Desteklenen değerler (büyük/küçük harf duyarsız): `chrome`, `firefox`, `edge`. Geçersiz bir değer verilirse `BrowserType.fromString`, desteklenen tarayıcıları listeleyen bir hata fırlatır.
 
 ### Etiket (Tag) Bazlı Çalıştırma
 
-`TestRunner`, varsayılan olarak `@run` etiketine sahip senaryoları çalıştırır. Belirli bir senaryo grubunu dahil etmek/hariç tutmak için `.feature` dosyalarındaki etiketleri veya `TestRunner`'daki `tags` ifadesini güncelleyebilirsiniz.
+`TestRunner`, varsayılan olarak `@run and not @excluded-from-ci` ifadesiyle çalışır: `@run` etiketine sahip, ancak `@excluded-from-ci` ile işaretlenmemiş senaryolar koşar (bu filtre yerelde de geçerlidir). Belirli bir senaryo grubunu dahil etmek/hariç tutmak için `.feature` dosyalarındaki etiketleri veya `TestRunner`'daki `tags` ifadesini güncelleyebilirsiniz.
 
 ---
 
@@ -366,7 +369,7 @@ Scenario: LG-09 Invalid credentials should not show products title (Fail Scenari
     Then the "Products Title" should be visible
 ```
 
-Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `RuntimeException` fırlar ve `Hooks.attachScreenshotOnFailure` otomatik devreye girip ekran görüntüsünü Allure raporuna gömer.
+Bu senaryo bilerek geçersiz kimlik bilgileriyle giriş yapıp `"Products Title"`'ın görünür olmasını bekler — login başarısız olduğu için element hiç gelmez, timeout sonrası `AssertionError` fırlar; hata fırlatılmadan hemen önce `FailureScreenshot` ekran görüntüsünü alıp Allure raporunda başarısız adımın içine ekler.
 
 > **Not:** Bu senaryo, framework'ün hata yakalama/raporlama/otomatik screenshot mekanizmasını göstermek amacıyla **bilerek** her zaman başarısız olacak şekilde kurgulanmıştır — bir bug değildir. Bu yüzden `@excluded-from-ci` etiketiyle işaretlenmiştir ve `TestRunner`'ın `tags = "@run and not @excluded-from-ci"` filtresi sayesinde CI koşumlarına dahil edilmez; CI her zaman yeşil kalır. Senaryoyu bilerek çalıştırmak istersen (örn. rapor mekanizmasını göstermek için) `.feature` dosyasından `@excluded-from-ci` etiketini geçici olarak kaldırman yeterli.
 
@@ -427,10 +430,16 @@ Scenario: PD-01 Product detail page displays correct name and price
 
 ### Bağlamsal Hata Mesajları
 
-`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır:
+`ElementActions` ve `VerificationActions`, Selenium'un fırlattığı `WebDriverException` alt sınıflarını yakalar ve hangi locator üzerinde başarısız olunduğunu belirten bir mesajla yeniden fırlatır. Exception türü, hatanın ne olduğuna göre seçilir:
+
+- **`ElementActions`:** Etkileşim hatalarını `RuntimeException` olarak fırlatır (Allure'da "broken").
+- **`VerificationActions`, zaman aşımı:** Element beklenen sürede görünmez ya da kaybolmazsa (`TimeoutException`) bu bir doğrulama hatasıdır ve `AssertionError` olarak fırlatılır (Allure'da "failed").
+- **`VerificationActions`, diğer WebDriver hataları:** Kopan oturum, çöken tarayıcı gibi durumlar doğrulama hatası sayılmaz; locator bilgisini içeren bir `RuntimeException` olarak fırlatılır (Allure'da "broken").
+
+Zaman aşımı örneği:
 
 ```
-java.lang.RuntimeException: Element is not visible. Locator: By.cssSelector: .title
+java.lang.AssertionError: Element is not visible. Locator: By.cssSelector: .title
 Caused by: org.openqa.selenium.TimeoutException: ...
 ```
 
@@ -438,15 +447,30 @@ Orijinal Selenium exception'ı `cause` olarak korunur; stack trace'de teknik det
 
 ### Otomatik Screenshot (Başarısız Adımlarda)
 
-`Hooks` sınıfındaki `@AfterStep` hook'u, her adımdan sonra çalışır ve yalnızca `scenario.isFailed()` `true` ise ekran görüntüsü alıp doğrudan Allure raporuna gömer:
+Ekran görüntüsü, hatanın fırlatıldığı anda alınır ve Allure raporunda **başarısız adımın içinde** "Failure Screenshot" adıyla görünür. Bunu `utils/FailureScreenshot` yardımcı sınıfı yapar:
+
+- **Ne zaman çağrılır:** Action sınıfları (`ElementActions`, `VerificationActions`, `WaitActions`, `NavigationActions`, `AlertActions`, `BrowserActions`) hata fırlatmadan hemen önce `FailureScreenshot.attach()` çağırır. Ek, `Allure.addAttachment` ile o an çalışan Cucumber adımına bağlanır.
+- **Senaryo başına bir ek:** Aynı senaryoda ikinci çağrı hiçbir şey yapmaz.
+- **Asıl hatayı gölgelemez:** Driver yoksa ya da ekran görüntüsü alınamazsa (açık alert, kopmuş oturum) yalnızca uyarı loglanır.
+- **Yedek:** Hata action sınıflarından geçmediyse (örn. step definition içindeki bir hata), `Hooks` sınıfındaki `@After` senaryo başarısızsa ve henüz ek yoksa bir tane ekler. `@AfterStep` hook'u kullanılmaz; bu yüzden raporda her adımdan sonra ayrı bir hook satırı oluşmaz.
 
 ```java
-@AfterStep
-public void attachScreenshotOnFailure(Scenario scenario) {
-    if (scenario.isFailed()) {
-        byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                .getScreenshotAs(OutputType.BYTES);
-        scenario.attach(screenshot, "image/png", "Failure Screenshot");
+// VerificationActions içinde (sadeleştirilmiş)
+} catch (TimeoutException e) {
+    FailureScreenshot.attach();
+    throw new AssertionError("Element is not visible. Locator: " + locator, e);
+}
+
+// Hooks içinde
+@After
+public void teardown(Scenario scenario) {
+    try {
+        if (scenario.isFailed() && !FailureScreenshot.isAttached()) {
+            FailureScreenshot.attach();
+        }
+    } finally {
+        FailureScreenshot.reset();
+        DriverManager.quitDriver();
     }
 }
 ```

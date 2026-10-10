@@ -11,10 +11,15 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
+/**
+ * Tarayıcı türüne ve yapılandırmaya (headless, sayfa yükleme zaman aşımı) göre WebDriver üretir.
+ */
 public class DriverFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(DriverFactory.class);
 
@@ -25,24 +30,48 @@ public class DriverFactory {
         SELENIUM_DEVTOOLS_LOGGER.setLevel(Level.SEVERE);
     }
 
-    public static WebDriver createDriver(String browser) {
-        LOGGER.info("Creating WebDriver instance for browser: {}", browser);
+    /**
+     * Verilen tarayıcı için yapılandırılmış yeni bir WebDriver oluşturur.
+     * Tarayıcı açıldıktan sonraki ayarlar hata verirse tarayıcı kapatılır ve hata yeniden fırlatılır.
+     *
+     * @param browser başlatılacak tarayıcı türü
+     * @return kullanıma hazır WebDriver
+     */
+    public static WebDriver createDriver(BrowserType browser) {
+        LOGGER.info("Creating WebDriver instance for browser: {}", browser.name().toLowerCase(Locale.ROOT));
 
         boolean headless = isHeadless();
         LOGGER.info("Headless mode: {}", headless);
 
-        WebDriver driver = switch (browser.toLowerCase()) {
-            case "chrome" -> new ChromeDriver(buildChromeOptions(headless));
-            case "firefox" -> new FirefoxDriver(buildFirefoxOptions(headless));
-            case "edge" -> new EdgeDriver(buildEdgeOptions(headless));
-            default -> throw new IllegalArgumentException("Unsupported browser: " + browser);
+        WebDriver driver = switch (browser) {
+            case CHROME -> new ChromeDriver(buildChromeOptions(headless));
+            case FIREFOX -> new FirefoxDriver(buildFirefoxOptions(headless));
+            case EDGE -> new EdgeDriver(buildEdgeOptions(headless));
         };
 
-        if (!headless) {
-            driver.manage().window().maximize();
+        try {
+            int pageLoadTimeout = ConfigReader.getInt("page.load.timeout", 30);
+            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(pageLoadTimeout));
+            LOGGER.info("Page load timeout: {}s", pageLoadTimeout);
+
+            if (!headless) {
+                driver.manage().window().maximize();
+            }
+        } catch (RuntimeException e) {
+            LOGGER.warn("Driver configuration failed, closing the browser: {}", e.getMessage());
+            quitQuietly(driver, e);
+            throw e;
         }
 
         return driver;
+    }
+
+    private static void quitQuietly(WebDriver driver, RuntimeException original) {
+        try {
+            driver.quit();
+        } catch (RuntimeException quitError) {
+            original.addSuppressed(quitError);
+        }
     }
 
     private static boolean isHeadless() {
