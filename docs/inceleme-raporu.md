@@ -36,9 +36,9 @@ Katmanlar temiz ve kod küçük. Asıl sorunlar paralel koşum ayarında, CI'ın
 | 5 | Orta — Düzeltildi (`d738eef`) | "should have value" aslında "contains"; null değerde NPE | `VerificationActions.java:46-62` |
 | 6 | Orta — Düzeltildi (`e1ca570`) | Doğrulama hataları `RuntimeException`; Allure'da "broken" görünür | `VerificationActions.java:18,34` |
 | 7 | Orta — Düzeltildi (`da8ad45`, `dcb4186`) | Türkçe locale'de `toLowerCase()` hatası | `DriverFactory.java:34`, `JsonDataReader.java:89` |
-| 8 | Orta | 21 adımın 15'i hiçbir senaryoda kullanılmıyor | `features/*.feature` |
-| 9 | Orta | `src/main` kodu `src/test/resources` yoluna sabitlenmiş | `ResourcePaths.java:7-9` |
-| 10 | Orta | Ortam değiştirme mekanizması yok | `saucedemo.json:3-4` |
+| 8 | Orta — Ertelendi (bilinçli karar) | 21 adımın 15'i hiçbir senaryoda kullanılmıyor | `features/*.feature` |
+| 9 | Orta — Ertelendi (bilinçli karar) | `src/main` kodu `src/test/resources` yoluna sabitlenmiş | `ResourcePaths.java:7-9` |
+| 10 | Orta — Ertelendi (bilinçli karar) | Ortam değiştirme mekanizması yok | `saucedemo.json:3-4` |
 
 ## 3. Hatalar ve hataya açık kod
 
@@ -101,8 +101,8 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 5. Mimari ve kod organizasyonu
 
-- **[Orta] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
-- **[Orta] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
+- **[Orta — Ertelendi, bkz. bölüm 14] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
+- **[Orta — Ertelendi, bkz. bölüm 14] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
 - **[Orta] `JsonDataReader` iki iş yapıyor.** Her örnek aynı klasör için hem locator hem veri map'i yüklüyor (`JsonDataReader.java:23-24`); `EnvironmentRepository.java:14` de URL almak için `getTestData` çağırıyor ve ortam dosyasının kök anahtarı `testData`. Locator ve anahtar-değer okuyucularını ayırın.
 - **[Düşük] DI ile statik erişim karışık.** Actions sınıfları `DriverManager.getDriver()`'ı statik çağırıyor. PicoContainer zaten senaryo başına örnek ürettiği için sürücüyü enjekte edilen bir sınıfta tutmak `ThreadLocal`'ı gereksiz kılar.
 - **[Düşük] `VerificationActions` `src/main` içinde TestNG `Assert` kullanıyor**; bu yüzden TestNG compile scope'ta kalmak zorunda.
@@ -126,7 +126,7 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 8. Test eksikleri
 
-- **[Orta] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
+- **[Orta — Ertelendi, bkz. bölüm 14] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
 - **[Orta — Düzeltildi, `79f20ef`] Senaryo başlığı ile doğrulama uyuşmuyor.** `inventory.feature:14-17` "Cart badge disappears" diyor ama "Add To Cart" görünürlüğünü kontrol ediyor; `product-detail.feature:23-26` de aynı. `Then the "Cart Badge" should not be visible` ekleyin.
 - **[Orta] Çatı kodunun birim testi yok.** `JsonDataReader` (eksik alan, çakışma, bilinmeyen locator tipi) ve `ConfigReader` (öncelik sırası) tarayıcısız test edilebilir.
 - **[Düşük] LG-09'un adı ve doğrulaması çelişiyor** (`login.feature:49-54`): "should not show" diyor, "should be visible" bekliyor. Kasıtlı olduğu README'de yazıyor; `@demo-failure` gibi bir etiket ve ayrı feature dosyası daha net olur.
@@ -277,10 +277,14 @@ Doğrulanmayan: `RuntimeException` yolu (zaman aşımı dışındaki WebDriver h
 
 ## 14. Güncel durum ve açık kalanlar
 
-İki kritik madde ve öncelik tablosundaki orta öncelikli maddelerin 3-7 numaralıları düzeltildi. Öncelik tablosunda açık kalan üç madde var:
+Öncelik tablosundaki on maddenin yedisi düzeltildi (iki kritik madde ve 3-7 numaralı orta öncelikli maddeler). Kalan üç madde proje sahibinin bilinçli kararıyla ertelendi; bunlar unutulmuş açık işler değil, koşulu gerçekleşince ele alınacak maddelerdir.
 
-- **Madde 8:** 21 adımın çoğu hâlâ hiçbir senaryoda kullanılmıyor. "should not be visible" artık INV-02 ve PD-04'te kullanılıyor; kullanılmayan adım sayısı 15'ten 14'e indi.
-- **Madde 9:** `src/main` kodu `src/test/resources` yoluna sabitlenmiş.
-- **Madde 10:** Ortam değiştirme mekanizması yok.
+| Madde | Karar | Gerekçe | Ne zaman ele alınacak |
+|---|---|---|---|
+| 8: Adımların çoğu hiçbir senaryoda kullanılmıyor | Ertelendi | Adımlar genel amaçlı bir kütüphane olarak tasarlandı. Sırf kapsam için senaryo yazılmayacak | İhtiyaç oldukça; bir adım gerçek bir senaryoda gerektiğinde kullanılacak |
+| 9: `src/main` kodu `src/test/resources` yoluna sabitlenmiş | Ertelendi | `src/main` ayrı bir jar olarak dağıtılmıyor | Jar olarak dağıtılması gündeme gelirse |
+| 10: Ortam değiştirme mekanizması yok | Ertelendi | Şu an tek ortam var | Çatı, birden fazla ortamı olan bir uygulamaya uyarlanırken |
 
-Bunların dışında bölüm 4-10'da işaretsiz duran orta ve düşük öncelikli maddeler de açık. Öne çıkanlar: yalnızca testte kullanılan bağımlılıkların `test` scope'una alınması, bağımlılık güncellemeleri, çatı kodu için birim testleri ve workflow'ların ilk push'ta GitHub Actions üzerinde doğrulanması.
+Madde 8 için güncel sayı: "should not be visible" adımı artık INV-02 ve PD-04'te kullanılıyor; hiçbir senaryoda kullanılmayan adım sayısı 15'ten 14'e indi.
+
+Bunların dışında bölüm 4-10'da işaretsiz duran orta ve düşük öncelikli maddeler hâlâ açık ve haklarında bir karar verilmedi. Öne çıkanlar: yalnızca testte kullanılan bağımlılıkların `test` scope'una alınması, bağımlılık güncellemeleri, çatı kodu için birim testleri ve workflow'ların ilk push'ta GitHub Actions üzerinde doğrulanması.
