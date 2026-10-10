@@ -4,7 +4,7 @@ Bu rapor 2026-10-10 tarihinde, `c1c5671` commit'indeki kod üzerinde yapılan in
 
 - **İnceleme (bölüm 1-10):** İzlenen 47 dosyanın tamamı okundu; bulgular statik incelemeye dayanıyor ve o aşamada hiçbir dosya değiştirilmedi. Bu bölümlerdeki dosya ve satır numaraları inceleme anındaki koda göredir.
 - **Doğrulama (bölüm 11):** Belirsiz kalan noktalar sonradan Maven komutlarıyla ve testler çalıştırılarak kontrol edildi.
-- **Düzeltmeler (bölüm 12-13):** Bulguların bir kısmı `docs/inceleme-raporu` dalında ayrı commit'lerle düzeltildi. Düzeltilen maddeler yerinde commit koduyla işaretli; işaretsiz maddeler hâlâ açık. Son durumda `mvn clean test -Dheadless=true` 19 senaryonun 19'unu geçiriyor. Hiçbir şey push edilmedi.
+- **Düzeltmeler (bölüm 12-14):** Bulguların bir kısmı `docs/inceleme-raporu` dalında ayrı commit'lerle düzeltildi. Düzeltilen maddeler yerinde commit koduyla işaretli; işaretsiz maddeler hâlâ açık. Son durumda `mvn clean test -Dheadless=true` 19 senaryonun 19'unu geçiriyor. Hiçbir şey push edilmedi.
 
 ## 1. Özet
 
@@ -101,11 +101,11 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 5. Mimari ve kod organizasyonu
 
-- **[Orta — Ertelendi, bkz. bölüm 14] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
-- **[Orta — Ertelendi, bkz. bölüm 14] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
+- **[Orta — Ertelendi, bkz. bölüm 15] "Kütüphane" test kaynaklarına bağımlı.** `ResourcePaths.java:7-9` `src/test/resources/...` yolunu çalışma dizinine göreli veriyor. `src/main` jar olarak paketlenip başka projede kullanılamaz ve Maven proje kökü dışından çalıştırılırsa bozulur. Classpath üzerinden okuyun ya da kökü `ConfigReader` ile yapılandırılabilir yapın.
+- **[Orta — Ertelendi, bkz. bölüm 15] Ortam yönetimi gerçek anlamda yok.** `saucedemo.json:3-4` düz bir anahtar→tam URL listesi; envanter URL'i ayrıca elle yazılmış. Staging/prod arasında geçiş yapılamaz. `-Denv=...` ile seçilen bir `baseUrl` ve göreli path'ler kullanın.
 - **[Orta] `JsonDataReader` iki iş yapıyor.** Her örnek aynı klasör için hem locator hem veri map'i yüklüyor (`JsonDataReader.java:23-24`); `EnvironmentRepository.java:14` de URL almak için `getTestData` çağırıyor ve ortam dosyasının kök anahtarı `testData`. Locator ve anahtar-değer okuyucularını ayırın.
 - **[Düşük] DI ile statik erişim karışık.** Actions sınıfları `DriverManager.getDriver()`'ı statik çağırıyor. PicoContainer zaten senaryo başına örnek ürettiği için sürücüyü enjekte edilen bir sınıfta tutmak `ThreadLocal`'ı gereksiz kılar.
-- **[Düşük] `VerificationActions` `src/main` içinde TestNG `Assert` kullanıyor**; bu yüzden TestNG compile scope'ta kalmak zorunda.
+- **[Düşük — Giderildi, `00c2e5b`] `VerificationActions` `src/main` içinde TestNG `Assert` kullanıyor**; bu yüzden TestNG compile scope'ta kalmak zorunda. Ekran görüntüsü değişikliğiyle (bölüm 14) `Assert` çağrıları kalktı; `src/main` artık TestNG kullanmıyor. `pom.xml`'de TestNG'nin scope'u değiştirilmedi.
 - **[Düşük] Tag filtresi runner'a gömülü** (`TestRunner.java:14`). `@excluded-from-ci` adına rağmen yerelde de dışlıyor. Filtreyi CI'da `-Dcucumber.filter.tags` ile verin.
 
 ## 6. Kod tekrarı ve okunabilirlik
@@ -126,7 +126,7 @@ Kritik bir bulgu yok; gerçek gizli bilgi bulunmuyor.
 
 ## 8. Test eksikleri
 
-- **[Orta — Ertelendi, bkz. bölüm 14] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
+- **[Orta — Ertelendi, bkz. bölüm 15] 21 adımın 15'i hiçbir senaryoda kullanılmıyor.** Kullanılanlar: navigate, enter the data, click, should be visible, should contain, should contain the data. Refresh/back/forward, JS click, literal enter, clear, scroll, wait, should not be visible, iki value adımı, screenshot, Enter ve iki alert adımı hiç çalışmamış kod. Bunları örnekleyen senaryolar ekleyin; alert için Sauce Demo yetersiz, başka bir demo sayfası gerekir.
 - **[Orta — Düzeltildi, `79f20ef`] Senaryo başlığı ile doğrulama uyuşmuyor.** `inventory.feature:14-17` "Cart badge disappears" diyor ama "Add To Cart" görünürlüğünü kontrol ediyor; `product-detail.feature:23-26` de aynı. `Then the "Cart Badge" should not be visible` ekleyin.
 - **[Orta] Çatı kodunun birim testi yok.** `JsonDataReader` (eksik alan, çakışma, bilinmeyen locator tipi) ve `ConfigReader` (öncelik sırası) tarayıcısız test edilebilir.
 - **[Düşük] LG-09'un adı ve doğrulaması çelişiyor** (`login.feature:49-54`): "should not show" diyor, "should be visible" bekliyor. Kasıtlı olduğu README'de yazıyor; `@demo-failure` gibi bir etiket ve ayrı feature dosyası daha net olur.
@@ -275,7 +275,34 @@ README'de `VerificationActions`'ı anlatan kısım ("Bağlamsal Hata Mesajları"
 
 Doğrulanmayan: `RuntimeException` yolu (zaman aşımı dışındaki WebDriver hataları) hiçbir koşumda tetiklenmedi; kopan oturum ya da çöken tarayıcı durumu denenmedi, yalnızca derlendi.
 
-## 14. Güncel durum ve açık kalanlar
+## 14. Hata ekran görüntüsünün başarısız adıma bağlanması (2026-10-10)
+
+**Sorun:** Allure raporunda hata ekran görüntüsü başarısız adımın içinde değil, ondan sonraki yeşil `attachScreenshotOnFailure` hook satırında görünüyordu ve bu hook satırı her adımdan sonra tekrar ediyordu. Neden: ek, bir `@AfterStep` hook'u içinde üretiliyordu; Allure her hook'u ayrı bir adım olarak raporluyor. Bu, inceleme raporunda bulgu olarak yer almıyordu.
+
+**Değişiklik** (commit `00c2e5b`, README güncellemesi `f912345`):
+- **Yeni yardımcı sınıf:** `utils/FailureScreenshot`. Driver varsa ekran görüntüsünü alıp `Allure.addAttachment` ile "Failure Screenshot" adıyla (`image/png`) ekliyor. Kendi hatalarını yutup yalnızca uyarı logluyor. Thread'e özel bir bayrakla senaryo başına en fazla bir ek üretiyor.
+- **Action sınıfları:** `ElementActions`, `VerificationActions`, `WaitActions`, `NavigationActions`, `AlertActions` ve `BrowserActions` hata fırlatmadan hemen önce yardımcıyı çağırıyor. Daha önce hatayı yakalamayan sınıflara (`WaitActions`, `NavigationActions`, `AlertActions`, `BrowserActions`) yalnızca "ekle ve aynı hatayı yeniden fırlat" yapan bir `catch (WebDriverException)` eklendi; fırlatılan hata türleri değişmedi.
+- **`VerificationActions`:** TestNG `Assert` çağrıları açık `if` + `AssertionError`'a çevrildi, çünkü ekran görüntüsünün hatadan önce alınması gerekiyor. Hata mesajları artık TestNG'nin eklediği `expected [..] but found [..]` son ekini içermiyor.
+- **`Hooks`:** `@AfterStep` metodu kaldırıldı. `@After`, senaryo başarısızsa ve henüz ek yoksa yedek olarak bir tane ekliyor; bayrak `@Before` ve `@After` içinde sıfırlanıyor.
+
+**Doğrulama:**
+
+| Koşum | Sonuç |
+|---|---|
+| `mvn clean test "-Dcucumber.filter.tags=@excluded-from-ci"` (yalnızca LG-09) | 1/1 düştü (beklenen). Allure sonuç dosyasında "Failure Screenshot" eki (34.734 bayt PNG) başarısız `Then the "Products Title" should be visible` adımının `attachments` listesinde; senaryo düzeyinde ve `teardown` fixture'ında ek yok; `attachScreenshotOnFailure` adlı adım yok |
+| `mvn clean test -Dheadless=true` | 19/19 geçti, 26,0 sn, log'da 1 thread |
+| Paralel suite (`testng-parallel.xml`) | 19/19 geçti, 14,3 sn, log'da 3 thread |
+
+Cucumber'ın adım sayısı 256'dan 147'ye indi; fark, artık çalışmayan `@AfterStep` hook'ları (adım başına bir tane).
+
+**Doğrulanmayanlar:**
+- `@After` içindeki yedek yol hiçbir koşumda tetiklenmedi; action sınıflarından geçmeyen bir hata üreten senaryo yok.
+- Yardımcının kendi hatasını yutması (açık alert, kopmuş oturum) ve `WaitActions` dışındaki yeni `catch` blokları tetiklenmedi; yalnızca derlendi.
+- Raporun tarayıcıdaki görünümüne bakılmadı; kontrol Allure sonuç JSON dosyası üzerinden yapıldı.
+
+Bölüm 12 ve 13'te `@AfterStep` hook'una yapılan düzeltmeler (`46f530e`, `768743a`) o hook kaldırıldığı için artık kodda yok; aynı korumalar `FailureScreenshot` içinde duruyor.
+
+## 15. Güncel durum ve açık kalanlar
 
 Öncelik tablosundaki on maddenin yedisi düzeltildi (iki kritik madde ve 3-7 numaralı orta öncelikli maddeler). Kalan üç madde proje sahibinin bilinçli kararıyla ertelendi; bunlar unutulmuş açık işler değil, koşulu gerçekleşince ele alınacak maddelerdir.
 
